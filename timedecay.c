@@ -127,7 +127,7 @@ void timedecay_add_string(timedecay tf, const char *element) {
  *     true if element is in filter
  *     false if element is not in filter
  */
-bool timedecay_lookup(timedecay tf, const uint8_t *element, const size_t len) {
+bool timedecay_lookup(const timedecay tf, const uint8_t *element, const size_t len) {
 	int         i;
 	uint32_t    result;
 	time_t      now = get_monotonic_time();
@@ -144,7 +144,12 @@ bool timedecay_lookup(timedecay tf, const uint8_t *element, const size_t len) {
 }
 
 // TODO add comment/documentation
-bool timedecay_lookup_time(timedecay tf, const uint8_t *element, const size_t len, const size_t timeout) {
+bool timedecay_lookup_string(const timedecay tf, const char *element) {
+	return timedecay_lookup(tf, (uint8_t *)element, strlen(element));
+}
+
+// TODO add comment/documentation
+bool timedecay_lookup_time(const timedecay tf, const uint8_t *element, const size_t len, const size_t timeout) {
 	int         i;
 	uint32_t    result;
 	time_t      now = get_monotonic_time();

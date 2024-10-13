@@ -15,8 +15,9 @@ bool timedecay_init(timedecay *, const uint32_t, const float, const uint32_t);
 void timedecay_destroy(timedecay);
 void timedecay_add(timedecay, const uint8_t *, const size_t);
 void timedecay_add_string(timedecay, const char *);
-bool timedecay_lookup(timedecay, const uint8_t *, const size_t);
-bool timedecay_lookup_time(timedecay, const uint8_t *, const size_t, const size_t);
+bool timedecay_lookup(const timedecay, const uint8_t *, const size_t);
+bool timedecay_lookup_string(const timedecay, const char *);
+bool timedecay_lookup_time(const timedecay, const uint8_t *, const size_t, const size_t);
 bool timedecay_save(timedecay, const char *);
 bool timedecay_load(timedecay *, const char *);
 

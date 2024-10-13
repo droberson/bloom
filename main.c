@@ -26,9 +26,7 @@ int main() {
 	printf("asdf: %d\n", bloom_lookup_string(bf, "asdf"));
 
 	// Hex dump the bitmap
-
-	int i;
-	for (i = 0; i < bf.bitmap_size; i++) {
+	for (size_t i = 0; i < bf.bitmap_size; i++) {
 		printf("%02x ", bf.bitmap[i]);
 	}
 	printf("\n");
@@ -53,8 +51,8 @@ int main() {
 	timedecay_init(&tf, 10, 0.01, 2);
 
 	timedecay_add_string(tf, "a");
-	timedecay_add_string(tf, "b");
-	printf("a: %d\n", timedecay_lookup(tf, (uint8_t *)"a", 1));
+	timedecay_add(tf, (uint8_t *)"b", 1);
+	printf("a: %d\n", timedecay_lookup_string(tf, "a"));
 	printf("c: %d\n", timedecay_lookup(tf, (uint8_t *)"c", 1));
 
 	puts("sleeping...");
