@@ -1,3 +1,5 @@
+/* timedecay.c
+ */
 
 #include <time.h>
 #include <math.h>
@@ -8,6 +10,7 @@
 #include <stdbool.h>
 
 #include "timedecay.h"
+#include "mmh3.h"
 
 /* ideal_size() - calculate ideal size of a filter
  *
@@ -90,9 +93,9 @@ void timedecay_destroy(timedecay tf) {
  *     Nothing
  */
 void timedecay_add(timedecay tf, const uint8_t *element, const size_t len) {
-	int			i;
-	uint32_t	result;
-	time_t		now = get_monotonic_time();
+	int         i;
+	uint32_t    result;
+	time_t      now = get_monotonic_time();
 
 	for (i = 0; i < tf.hashcount; i++) {
 		result  = mmh3(element, len, i) % tf.size; // salt is seed.
@@ -125,9 +128,9 @@ void timedecay_add_string(timedecay tf, const char *element) {
  *     false if element is not in filter
  */
 bool timedecay_lookup(timedecay tf, const uint8_t *element, const size_t len) {
-	int			i;
-	uint32_t	result;
-	time_t		now = get_monotonic_time();
+	int         i;
+	uint32_t    result;
+	time_t      now = get_monotonic_time();
 
 	for (i = 0; i < tf.hashcount; i++) {
 		result = mmh3(element, len, i) % tf.size;
@@ -142,9 +145,9 @@ bool timedecay_lookup(timedecay tf, const uint8_t *element, const size_t len) {
 
 // TODO add comment/documentation
 bool timedecay_lookup_time(timedecay tf, const uint8_t *element, const size_t len, const size_t timeout) {
-	int			i;
-	uint32_t	result;
-	time_t		now = get_monotonic_time();
+	int         i;
+	uint32_t    result;
+	time_t      now = get_monotonic_time();
 
 	for (i = 0; i < tf.hashcount; i++) {
 		result = mmh3(element, len, i) % tf.size;
@@ -159,7 +162,7 @@ bool timedecay_lookup_time(timedecay tf, const uint8_t *element, const size_t le
 
 // TODO add comment/documentation
 bool timedecay_save(timedecay tf, const char *path) {
-	FILE	*fp;
+	FILE *fp;
 
 	fp = fopen(path, "w");
 	if (fp == NULL) {
@@ -176,7 +179,7 @@ bool timedecay_save(timedecay tf, const char *path) {
 
 // TODO add comment/documentation
 bool timedecay_load(timedecay *tf, const char *path) {
-	FILE	*fp;
+	FILE *fp;
 
 	fp = fopen(path, "r");
 	if (fp == NULL) {
