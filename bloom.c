@@ -8,26 +8,7 @@
 #include <unistd.h>
 
 #include "mmh3.h"
-
-struct bloom {
-	uint32_t size;          /* size of bloom filter */
-	uint32_t hashcount;     /* number of hashes per element */
-	uint32_t bitmap_size;   /* size of bitmap */
-	uint8_t  *bitmap;       /* bitmap of bloom filter */
-};
-
-struct timefilter {
-	uint32_t size;          /* size of time filter */
-	uint32_t hashcount;     /* number of hashes per element */
-	uint32_t timeout;       /* number of seconds an element is valid */
-	uint32_t filter_size;   /* number of time_t values in time filter*/
-	time_t   *filter;       /* array of time_t elements */
-};
-
-
-typedef struct bloom bloomfilter;
-typedef struct timefilter timefilter;
-
+#include "bloom.h"
 
 /* ideal_size() - calculate ideal size of a filter
  *
@@ -41,7 +22,6 @@ typedef struct timefilter timefilter;
 static uint32_t ideal_size(const uint32_t expected, const float accuracy) {
 	return -(expected * log(accuracy) / pow(log(2.0), 2));
 }
-
 
 /* timefilter_init() - initialize a time filter
  *
@@ -71,7 +51,6 @@ bool timefilter_init(timefilter *tf, const uint32_t expected, const float accura
 	return true;
 }
 
-
 /* timefilter_destroy() - uninitialize a time filter
  *
  * Args:
@@ -83,7 +62,6 @@ bool timefilter_init(timefilter *tf, const uint32_t expected, const float accura
 void timefilter_destroy(timefilter tf) {
 	free(tf.filter);
 }
-
 
 /* timefilter_add() - add an element to a time filter
  *
@@ -106,7 +84,6 @@ void timefilter_add(timefilter tf, const uint8_t *element, const size_t len) {
 	}
 }
 
-
 /* timefilter_add_string() - add a string element to a time filter
  *
  * Args:
@@ -117,9 +94,8 @@ void timefilter_add(timefilter tf, const uint8_t *element, const size_t len) {
  *     Nothing
  */
 void timefilter_add_string(timefilter tf, const char *element) {
-	timefilter_add(tf, element, strlen(element));
+	timefilter_add(tf, (uint8_t *)element, strlen(element));
 }
-
 
 /* timefilter_lookup() - check if element exists within timefilter
  *
@@ -148,7 +124,7 @@ bool timefilter_lookup(timefilter tf, const uint8_t *element, const size_t len) 
 	return true;
 }
 
-
+// TODO add comment/documentation
 bool timefilter_lookup_time(timefilter tf, const uint8_t *element, const size_t len, const size_t timeout) {
 	int			i;
 	uint32_t	result;
@@ -165,7 +141,7 @@ bool timefilter_lookup_time(timefilter tf, const uint8_t *element, const size_t 
 	return true;
 }
 
-
+// TODO add comment/documentation
 bool timefilter_save(timefilter tf, const char *path) {
 	FILE	*fp;
 
@@ -182,7 +158,7 @@ bool timefilter_save(timefilter tf, const char *path) {
 	return true;
 }
 
-
+// TODO add comment/documentation
 bool timefilter_load(timefilter *tf, const char *path) {
 	FILE	*fp;
 
@@ -206,7 +182,8 @@ bool timefilter_load(timefilter *tf, const char *path) {
 	return true;
 }
 
-
+// TODO: specify which hashing algorithm to use.
+// TODO: add comment/documentation
 bool bloom_init(bloomfilter *bf, const uint32_t expected, const float accuracy) {
 	bf->size        = ideal_size(expected, accuracy);
 	bf->hashcount   = (bf->size / expected) * log(2);
@@ -220,12 +197,12 @@ bool bloom_init(bloomfilter *bf, const uint32_t expected, const float accuracy) 
 	return true;
 }
 
-
+// TODO: comment/documentation
 void bloom_destroy(bloomfilter bf) {
 	free(bf.bitmap);
 }
 
-
+// TODO comment/documentation
 bool bloom_lookup(const bloomfilter bf, const uint8_t *element, const size_t len) {
 	int      i;
 	uint32_t result;
@@ -245,12 +222,12 @@ bool bloom_lookup(const bloomfilter bf, const uint8_t *element, const size_t len
 	return true;
 }
 
-
+// TODO comment/documenatation
 bool bloom_lookup_string(const bloomfilter bf, const char *element) {
-	return bloom_lookup(bf, element, strlen(element));
+	return bloom_lookup(bf, (uint8_t *)element, strlen(element));
 }
 
-
+// TODO comment/documentation
 void bloom_add(bloomfilter bf, const uint8_t *element, const size_t len) {
 	int			i;
 	uint32_t	result;
@@ -265,12 +242,12 @@ void bloom_add(bloomfilter bf, const uint8_t *element, const size_t len) {
 	}
 }
 
-
+// TODO comment/documentation
 void bloom_add_string(bloomfilter bf, const char *element) {
-	bloom_add(bf, element, strlen(element));
+	bloom_add(bf, (uint8_t *)element, strlen(element));
 }
 
-
+// TODO comment/documentation
 bool bloom_save(bloomfilter bf, const char *path) {
 	FILE	*fp;
 
@@ -286,7 +263,7 @@ bool bloom_save(bloomfilter bf, const char *path) {
 	return true;
 }
 
-
+// TODO comment/documentation
 bool bloom_load(bloomfilter *bf, const char *path) {
 	FILE	*fp;
 
@@ -308,65 +285,4 @@ bool bloom_load(bloomfilter *bf, const char *path) {
 	fclose(fp);
 
 	return true;
-}
-
-
-int main() {
-	bloomfilter bf;
-
-	puts("Initializing filter with 100 expected elements and 99.99% accuracy\n");
-	bloom_init(&bf, 100, 0.01);
-	printf("size: %d\n", bf.size);
-	printf("hashcount: %d\n", bf.hashcount);
-	printf("bitmap size: %d\n", bf.bitmap_size);
-
-	// Add some shit to the filter
-	bloom_add_string(bf, "asdf");
-	bloom_add_string(bf, "bar");
-	bloom_add_string(bf, "foo");
-
-	// Look up some stuff
-	printf("foo: %d\n", bloom_lookup_string(bf, "foo"));
-	printf("bar: %d\n", bloom_lookup_string(bf, "bar"));
-	printf("baz: %d\n", bloom_lookup_string(bf, "baz"));
-	printf("asdf: %d\n", bloom_lookup_string(bf, "asdf"));
-
-	// Hex dump the bitmap
-
-	int i;
-	for (i = 0; i < bf.bitmap_size; i++) {
-		printf("%02x ", bf.bitmap[i]);
-	}
-	printf("\n");
-
-
-	// Save to file
-	bloom_save(bf, "/tmp/bloom");
-	bloom_destroy(bf);
-
-	// Load from file
-	bloomfilter newbloom;
-	bloom_load(&newbloom, "/tmp/bloom");
-
-	printf("foo: %d\n", bloom_lookup_string(newbloom, "foo"));
-	printf("bar: %d\n", bloom_lookup_string(newbloom, "bar"));
-	printf("baz: %d\n", bloom_lookup_string(newbloom, "baz"));
-	printf("asdf: %d\n", bloom_lookup_string(newbloom, "asdf"));
-
-
-	timefilter tf;
-
-	timefilter_init(&tf, 10, 0.01, 2);
-
-	timefilter_add(tf, "a", 1);
-	timefilter_add(tf, "b", 1);
-	printf("a: %d\n", timefilter_lookup(tf, "a", 1));
-	printf("c: %d\n", timefilter_lookup(tf, "c", 1));
-
-	puts("sleeping...");
-	sleep(5);
-	printf("a: %d\n", timefilter_lookup(tf, "a", 1));
-	printf("c: %d\n", timefilter_lookup(tf, "c", 1));
-
-	timefilter_destroy(tf);
 }
