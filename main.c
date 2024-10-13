@@ -1,7 +1,9 @@
 
 #include <stdio.h>
 #include <unistd.h>
+
 #include "bloom.h"
+#include "timedecay.h"
 
 int main() {
 	bloomfilter bf;
@@ -46,19 +48,19 @@ int main() {
 	printf("asdf: %d\n", bloom_lookup_string(newbloom, "asdf"));
 
 
-	timefilter tf;
+	timedecay tf;
 
-	timefilter_init(&tf, 10, 0.01, 2);
+	timedecay_init(&tf, 10, 0.01, 2);
 
-	timefilter_add(tf, "a", 1);
-	timefilter_add(tf, "b", 1);
-	printf("a: %d\n", timefilter_lookup(tf, "a", 1));
-	printf("c: %d\n", timefilter_lookup(tf, "c", 1));
+	timedecay_add(tf, "a", 1);
+	timedecay_add(tf, "b", 1);
+	printf("a: %d\n", timedecay_lookup(tf, "a", 1));
+	printf("c: %d\n", timedecay_lookup(tf, "c", 1));
 
 	puts("sleeping...");
 	sleep(5);
-	printf("a: %d\n", timefilter_lookup(tf, "a", 1));
-	printf("c: %d\n", timefilter_lookup(tf, "c", 1));
+	printf("a: %d\n", timedecay_lookup(tf, "a", 1));
+	printf("c: %d\n", timedecay_lookup(tf, "c", 1));
 
-	timefilter_destroy(tf);
+	timedecay_destroy(tf);
 }

@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -Wall -g
 LDFLAGS = -lm
 
-SRC = bloom.c mmh3.c main.c
+SRC = bloom.c mmh3.c main.c timedecay.c
 OBJ = $(SRC:.c=.o)
 
 
