@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "mmh3.h"
+
 /* mmh3() - murmur3 hash.
  *
  * MurmurHash3 hash function (32-bit). This was dapted from a code snippet
@@ -18,7 +20,7 @@
  * Returns:
  *      32 bit unsigned integer hash value of `key`
  */
-uint32_t mmh3(uint8_t *key, const uint32_t len, const uint32_t seed) {
+uint32_t mmh3(const uint8_t *key, const uint32_t len, const uint32_t seed) {
 	uint32_t		c1 = 0xcc9e2d51;
 	uint32_t		c2 = 0x1b873593;
 	uint32_t		r1 = 15;
@@ -89,6 +91,6 @@ uint32_t mmh3(uint8_t *key, const uint32_t len, const uint32_t seed) {
  * Returns:
  *     uint32_t containing calculated mmh3 hash
  */
-uint32_t mmh3_string(uint8_t *element, const uint32_t seed) {
+uint32_t mmh3_string(const char *element, const uint32_t seed) {
 	return mmh3(element, strlen((char *)element), seed);
 }
