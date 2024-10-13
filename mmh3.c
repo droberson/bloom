@@ -92,5 +92,5 @@ uint32_t mmh3(const uint8_t *key, const uint32_t len, const uint32_t seed) {
  *     uint32_t containing calculated mmh3 hash
  */
 uint32_t mmh3_string(const char *element, const uint32_t seed) {
-	return mmh3(element, strlen((char *)element), seed);
+	return mmh3((uint8_t *)element, strlen((char *)element), seed);
 }
