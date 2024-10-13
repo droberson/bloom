@@ -46,12 +46,24 @@ void bloom_destroy(bloomfilter bf) {
 // TODO comment/documentation
 bool bloom_lookup(const bloomfilter bf, const uint8_t *element, const size_t len) {
 	int      i;
+#if UINTPTR_MAX == 0xffffffff
 	uint32_t result;
 	uint32_t bytepos;
 	uint32_t bitpos;
-
+#else
+	uint64_t hash[2];
+	uint64_t result;
+	uint64_t bytepos;
+	uint64_t bitpos;
+#endif /* UINTPTR_MAX */
 	for (i = 0; i < bf.hashcount; i++) {
+#if UINTPTR_MAX == 0xffffffff
 		result = mmh3(element, len, i) % bf.size;
+#else
+		mmh3_128(element, len, i, hash);
+		result = ((hash[0] % bf.size) + (hash[1] % bf.size)) % bf.size;
+#endif /* UINTPTR_MAX */
+
 		bytepos = ceil(result / 8);
 		bitpos = result % 8;
 
@@ -70,13 +82,26 @@ bool bloom_lookup_string(const bloomfilter bf, const char *element) {
 
 // TODO comment/documentation
 void bloom_add(bloomfilter bf, const uint8_t *element, const size_t len) {
-	int			i;
-	uint32_t	result;
-	uint32_t	bytepos;
-	uint32_t	bitpos;
-
+	int       i;
+#if UINTPTR_MAX == 0xffffffff
+	uint32_t  result;
+	uint32_t  bytepos;
+	uint32_t  bitpos;
+#else
+	uint64_t  hash[2];
+	uint64_t  result;
+	uint64_t  bytepos;
+	uint64_t  bitpos;
+#endif /* UINTPTR_MAX */
+	//uint64_t  result
 	for (i = 0; i < bf.hashcount; i++) {
-		result  = mmh3(element, len, i) % bf.size; // salt is seed.
+#if UINTPTR_MAX == 0xffffffff
+		result = mmh3(element, len, i) % bf.size; // salt is seed
+#else
+		mmh3_128(element, len, i, hash);
+		result = ((hash[0] % bf.size) + (hash[1] % bf.size)) % bf.size;
+#endif /* UINTPTR_MAX */
+
 		bytepos = ceil(result / 8);
 		bitpos  = result % 8;
 		bf.bitmap[bytepos] |= (0x01 << bitpos);
