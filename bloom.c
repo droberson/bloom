@@ -23,6 +23,23 @@ static uint32_t ideal_size(const uint32_t expected, const float accuracy) {
 	return -(expected * log(accuracy) / pow(log(2.0), 2));
 }
 
+/* get_monotonic_time() - get monotonic time.
+ *
+ * This helps account for clock changes on the local system. Relying on time()
+ * will ruin the filter if the clock is adjusted on the system.
+ *
+ * Args:
+ *     None
+ *
+ * Returns:
+ *     time_t holding CLOCK_MONOTONIC value
+ */
+static time_t get_monotonic_time() {
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec;
+}
+
 /* timefilter_init() - initialize a time filter
  *
  * Args:
@@ -76,7 +93,7 @@ void timefilter_destroy(timefilter tf) {
 void timefilter_add(timefilter tf, const uint8_t *element, const size_t len) {
 	int			i;
 	uint32_t	result;
-	time_t		now = time(NULL);
+	time_t		now = get_monotonic_time();
 
 	for (i = 0; i < tf.hashcount; i++) {
 		result  = mmh3(element, len, i) % tf.size; // salt is seed.
@@ -111,7 +128,7 @@ void timefilter_add_string(timefilter tf, const char *element) {
 bool timefilter_lookup(timefilter tf, const uint8_t *element, const size_t len) {
 	int			i;
 	uint32_t	result;
-	time_t		now = time(NULL);
+	time_t		now = get_monotonic_time();
 
 	for (i = 0; i < tf.hashcount; i++) {
 		result = mmh3(element, len, i) % tf.size;
@@ -128,7 +145,7 @@ bool timefilter_lookup(timefilter tf, const uint8_t *element, const size_t len) 
 bool timefilter_lookup_time(timefilter tf, const uint8_t *element, const size_t len, const size_t timeout) {
 	int			i;
 	uint32_t	result;
-	time_t		now = time(NULL);
+	time_t		now = get_monotonic_time();
 
 	for (i = 0; i < tf.hashcount; i++) {
 		result = mmh3(element, len, i) % tf.size;
