@@ -52,15 +52,15 @@ int main() {
 
 	timedecay_init(&tf, 10, 0.01, 2);
 
-	timedecay_add(tf, "a", 1);
-	timedecay_add(tf, "b", 1);
-	printf("a: %d\n", timedecay_lookup(tf, "a", 1));
-	printf("c: %d\n", timedecay_lookup(tf, "c", 1));
+	timedecay_add_string(tf, "a");
+	timedecay_add_string(tf, "b");
+	printf("a: %d\n", timedecay_lookup(tf, (uint8_t *)"a", 1));
+	printf("c: %d\n", timedecay_lookup(tf, (uint8_t *)"c", 1));
 
 	puts("sleeping...");
 	sleep(5);
-	printf("a: %d\n", timedecay_lookup(tf, "a", 1));
-	printf("c: %d\n", timedecay_lookup(tf, "c", 1));
+	printf("a: %d\n", timedecay_lookup(tf, (uint8_t *)"a", 1));
+	printf("c: %d\n", timedecay_lookup(tf, (uint8_t *)"c", 1));
 
 	timedecay_destroy(tf);
 }
