@@ -3,6 +3,7 @@
 #ifndef TIMEDECAY_H
 #define TIMEDECAY_H
 
+#include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
 
