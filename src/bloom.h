@@ -20,7 +20,7 @@ typedef struct {
 //	hash_funct_t hash_function; /* hash function to use. default: mmh3 */
 } bloomfilter;
 
-bool bloom_init(bloomfilter *, const uint32_t, const float);
+bool bloom_init(bloomfilter *, const uint64_t, const float);
 void bloom_destroy(bloomfilter);
 bool bloom_lookup(const bloomfilter, const uint8_t *, const size_t);
 bool bloom_lookup_string(const bloomfilter, const char *);
