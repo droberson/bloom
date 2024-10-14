@@ -95,12 +95,13 @@ void timedecay_destroy(timedecay tf) {
  *     Nothing
  */
 void timedecay_add(timedecay tf, const uint8_t *element, const size_t len) {
-	int         i;
-	uint32_t    result;
+	uint64_t    result;
+	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
 
-	for (i = 0; i < tf.hashcount; i++) {
-		result  = mmh3(element, len, i) % tf.size; // salt is seed.
+	for (int i = 0; i < tf.hashcount; i++) {
+		mmh3_128(element, len, i, hash);
+		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
 		tf.filter[result] = now;
 	}
 }
@@ -130,12 +131,13 @@ void timedecay_add_string(timedecay tf, const char *element) {
  *     false if element is not in filter
  */
 bool timedecay_lookup(const timedecay tf, const uint8_t *element, const size_t len) {
-	int         i;
-	uint32_t    result;
+	uint64_t    result;
+	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
 
-	for (i = 0; i < tf.hashcount; i++) {
-		result = mmh3(element, len, i) % tf.size;
+	for (int i = 0; i < tf.hashcount; i++) {
+		mmh3_128(element, len, i, hash);
+		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
 
 		if (((now - tf.filter[result]) > tf.timeout) || (tf.filter[result] == 0)) {
 			return false;
@@ -152,12 +154,13 @@ bool timedecay_lookup_string(const timedecay tf, const char *element) {
 
 // TODO add comment/documentation
 bool timedecay_lookup_time(const timedecay tf, const uint8_t *element, const size_t len, const size_t timeout) {
-	int         i;
-	uint32_t    result;
+	uint64_t    result;
+	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
 
-	for (i = 0; i < tf.hashcount; i++) {
-		result = mmh3(element, len, i) % tf.size;
+	for (int i = 0; i < tf.hashcount; i++) {
+		mmh3_128(element, len, i, hash);
+		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
 
 		if (((now - tf.filter[result]) > timeout) || (tf.filter[result] == 0)) {
 			return false;
