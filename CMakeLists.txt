@@ -12,6 +12,7 @@ set(SRC_FILES
     src/bloom.c
     src/countingbloom.c
     src/timedecay.c
+    src/cuckoo.c
 )
 
 # Create a static library (.a)
@@ -45,6 +46,7 @@ install(FILES
     src/mmh3.h
     src/timedecay.h
     src/countingbloom.h
+    src/cuckoo.h
     DESTINATION include/bloom)
 install(CODE "execute_process(COMMAND ldconfig)")
 

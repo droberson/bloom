@@ -104,6 +104,8 @@ uint32_t mmh3_32_string(const char *element, const uint32_t seed) {
  *
  * Returns
  *    uint64_t containing 64-bit mmh3 hash
+ *
+ * TODO: compare with official implementations. unsure if algorithms match.
  */
 uint64_t mmh3_64(const void *key, const size_t len, uint64_t seed) {
     const uint64_t c1 = 0x87c37b91114253d5ULL;
@@ -199,6 +201,8 @@ uint64_t mmh3_64(const void *key, const size_t len, uint64_t seed) {
  *
  * Returns:
  *     Nothing. Output is written to 'out'.
+ *
+ * TODO: compare with official implementations. unsure if algorithms match.
  */
 void mmh3_128(const void *key, const size_t len, const uint64_t seed, uint64_t *out) {
     const uint64_t  c1 = 0x87c37b91114253d5;

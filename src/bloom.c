@@ -18,7 +18,7 @@
  * Returns:
  *     unsigned integer
  */
-static uint64_t ideal_size(const size_t expected, const float accuracy) {
+static size_t ideal_size(const size_t expected, const float accuracy) {
 	return -(expected * log(accuracy) / pow(log(2.0), 2));
 }
 

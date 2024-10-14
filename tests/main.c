@@ -5,6 +5,7 @@
 #include "bloom.h"
 #include "timedecay.h"
 #include "countingbloom.h"
+#include "cuckoo.h"
 
 int main() {
 	bloomfilter bf;
@@ -82,4 +83,14 @@ int main() {
 
 	countingbloom_remove_string(cbf, "bar");
 	printf("cbf bar lookup: %d\n", countingbloom_lookup_string(cbf, "bar"));
+
+	cuckoofilter cf;
+	cuckoo_init(&cf, 1000, 4, 500);
+	cuckoo_add(cf, "foo", strlen("foo"));
+	cuckoo_add(cf, "bar", strlen("bar"));
+	printf("cuckoo foo lookup: %d\n", cuckoo_lookup(cf, "foo", strlen("foo")));
+	printf("cuckoo bar lookup: %d\n", cuckoo_lookup(cf, "bar", strlen("bar")));
+	printf("cuckoo baz lookup: %d\n", cuckoo_lookup(cf, "baz", strlen("baz")));
+	cuckoo_remove(cf, "foo", strlen("foo"));
+	printf("cuckoo foo lookup: %d\n", cuckoo_lookup(cf, "foo", strlen("foo")));
 }
