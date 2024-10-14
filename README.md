@@ -4,7 +4,7 @@
 ![GitHub Issues](https://img.shields.io/github/issues/droberson/bloom)
 
 
-This project includes an implementation of probabilistic data
+This project includes implementations of various probabilistic data
 structures in C:
 
 ## Classic, vanilla bloom filters
