@@ -31,3 +31,34 @@ such as:
 do that."
 
 "Is this element in the set? If so, when was it added?"
+
+
+# Building
+
+This is developed on Debian Linux, and untested on anything else.
+
+Build this with CMake:
+
+Make a directory;
+```
+mkdir build && cd build
+```
+
+Run cmake:
+```
+cmake ..
+```
+
+Build:
+```
+make
+```
+
+Install:
+```
+make install
+```
+
+You may need to run `ldconfig` after installing.
+
+
