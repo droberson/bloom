@@ -4,7 +4,6 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "mmh3.h"
@@ -53,7 +52,6 @@ bool bloom_lookup(const bloomfilter bf, const uint8_t *element, const size_t len
 	for (int i = 0; i < bf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		result = ((hash[0] % bf.size) + (hash[1] % bf.size)) % bf.size;
-#endif /* UINTPTR_MAX */
 
 		bytepos = ceil(result / 8);
 		bitpos = result % 8;
