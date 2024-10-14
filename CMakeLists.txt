@@ -8,8 +8,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Add source files for the library
 set(SRC_FILES
-    src/bloom.c
     src/mmh3.c
+    src/bloom.c
+    src/countingbloom.c
     src/timedecay.c
 )
 
@@ -39,7 +40,12 @@ target_link_libraries(test_bloom PRIVATE bloom_shared)
 install(TARGETS bloom_shared # bloom_static
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
-install(FILES src/bloom.h src/mmh3.h src/timedecay.h DESTINATION include/bloom)
+install(FILES
+    src/bloom.h
+    src/mmh3.h
+    src/timedecay.h
+    src/countingbloom.h
+    DESTINATION include/bloom)
 install(CODE "execute_process(COMMAND ldconfig)")
 
 # Enable testing

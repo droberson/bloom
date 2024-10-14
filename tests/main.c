@@ -4,6 +4,7 @@
 
 #include "bloom.h"
 #include "timedecay.h"
+#include "countingbloom.h"
 
 int main() {
 	bloomfilter bf;
@@ -61,4 +62,24 @@ int main() {
 	printf("c: %d\n", timedecay_lookup(tf, (uint8_t *)"c", 1));
 
 	timedecay_destroy(tf);
+
+
+	countingbloomfilter cbf;
+	countingbloom_init(&cbf, 20, 0.01);
+	countingbloom_add_string(cbf, "foo");
+	countingbloom_add_string(cbf, "bar");
+
+	countingbloom_add_string(cbf, "multi");
+	countingbloom_add_string(cbf, "multi");
+	printf("cbf foo lookup: %d\n", countingbloom_lookup_string(cbf, "foo"));
+	printf("cbf bar lookup: %d\n", countingbloom_lookup_string(cbf, "bar"));
+	printf("cbf baz lookup: %d\n", countingbloom_lookup_string(cbf, "baz"));
+
+	for (size_t i = 0; i < cbf.size; i++) {
+		printf("%d ", cbf.countermap[i]);
+	}
+	printf("\n");
+
+	countingbloom_remove_string(cbf, "bar");
+	printf("cbf bar lookup: %d\n", countingbloom_lookup_string(cbf, "bar"));
 }
