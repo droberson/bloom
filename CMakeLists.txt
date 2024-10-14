@@ -30,10 +30,10 @@ target_include_directories(bloom_shared PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(bloom_shared PUBLIC m)
 
 # Optionally add an example/test program
-add_executable(test_libbloom tests/main.c)
+add_executable(test_bloom tests/main.c)
 
 # Link the example program with the shared library
-target_link_libraries(test_libbloom PRIVATE bloom_shared)
+target_link_libraries(test_bloom PRIVATE bloom_shared)
 
 # Install rules
 install(TARGETS bloom_shared # bloom_static
@@ -44,4 +44,4 @@ install(CODE "execute_process(COMMAND ldconfig)")
 
 # Enable testing
 enable_testing()
-add_test(NAME TestBloom COMMAND tests/test_bloom)
+add_test(NAME TestBloom COMMAND bin/test_bloom)
