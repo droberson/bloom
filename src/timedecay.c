@@ -59,7 +59,7 @@ bool timedecay_init(timedecay *tf, const uint64_t expected, const float accuracy
 	tf->size      = ideal_size(expected, accuracy);
 	tf->hashcount = (tf->size / expected) * log(2);
 	tf->timeout   = timeout;
-	tf->filter    = malloc(tf->size * sizeof(time_t));
+	tf->filter    = calloc(tf->size, sizeof(time_t));
 	if (tf->filter == NULL) {
 		return false;
 	}

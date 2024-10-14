@@ -29,7 +29,7 @@ bool bloom_init(bloomfilter *bf, const uint64_t expected, const float accuracy) 
 	bf->hashcount   = (bf->size / expected) * log(2);
 	bf->bitmap_size = ceil(bf->size / 8);
 
-	bf->bitmap      = malloc(bf->bitmap_size);
+	bf->bitmap      = calloc(bf->bitmap_size, sizeof(uint8_t));
 	if (bf->bitmap == NULL) {
 		return false;
 	}
