@@ -91,11 +91,26 @@ void bloom_add_string(bloomfilter bf, const char *element) {
 	bloom_add(bf, (uint8_t *)element, strlen(element));
 }
 
-// TODO comment/documentation
+/* bloom_save() -- save a bloom filter to disk
+ *
+ * Format of these files on disk is:
+ *    +---------------------+
+ *    | bloom filter struct |
+ *    +---------------------+
+ *    |        bitmap       |
+ *    +---------------------+
+ *
+ * Args:
+ *     bf   - filter to save
+ *     path - file path to save filter
+ *
+ * Returns:
+ *      true on success, false on failure
+ */
 bool bloom_save(bloomfilter bf, const char *path) {
 	FILE	*fp;
 
-	fp = fopen(path, "w");
+	fp = fopen(path, "wb");
 	if (fp == NULL) {
 		return false;
 	}
@@ -108,11 +123,19 @@ bool bloom_save(bloomfilter bf, const char *path) {
 	return true;
 }
 
-// TODO comment/documentation
+/* bloom_load() -- load a bloom filter from disk
+ *
+ * Args:
+ *     bf   - bloom filter object of new filter
+ *     path - location of filter on disk
+ *
+ * Returns:
+ *     true on success, false on failure
+ */
 bool bloom_load(bloomfilter *bf, const char *path) {
 	FILE	*fp;
 
-	fp = fopen(path, "r");
+	fp = fopen(path, "rb");
 	if (fp == NULL) {
 		return false;
 	}
