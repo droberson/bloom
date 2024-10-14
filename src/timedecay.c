@@ -38,7 +38,9 @@ static uint32_t ideal_size(const uint32_t expected, const float accuracy) {
  */
 static time_t get_monotonic_time() {
 	struct timespec ts;
+
 	clock_gettime(CLOCK_MONOTONIC, &ts);
+
 	return ts.tv_sec;
 }
 

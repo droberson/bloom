@@ -3,6 +3,9 @@
 #ifndef TIMEDECAY_H
 #define TIMEDECAY_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 typedef struct {
 	uint32_t size;          /* size of time filter */
 	uint32_t hashcount;     /* number of hashes per element */

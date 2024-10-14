@@ -1,11 +1,10 @@
 #ifndef BLOOM_H
 #define BLOOM_H
 
-#include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-// TODO: implement 64 bit functions?
+// TODO: implement 32, 64 bit functions?
 #if UINTPTR_MAX == 0xffffffff
 typedef uint32_t (*hash_func32_t)(const void *key, size_t len, uint32_t seed);
 #define DEFAULT_HASH_FUNC_BITS
