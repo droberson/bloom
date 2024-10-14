@@ -170,11 +170,26 @@ bool timedecay_lookup_time(const timedecay tf, const uint8_t *element, const siz
 	return true;
 }
 
-// TODO add comment/documentation
+/* timedecay_save() -- save a time-decaying bloom filter to disk
+ *
+ * Format of these files on disk is:
+ *    +------------------+
+ *    | timedecay struct |
+ *    +------------------+
+ *    |      bitmap      |
+ *    +------------------+
+ *
+ * Args:
+ *     tf   - filter to save
+ *     path - file path to save filter
+ *
+ * Returns:
+ *      true on success, false on failure
+ */
 bool timedecay_save(timedecay tf, const char *path) {
 	FILE *fp;
 
-	fp = fopen(path, "w");
+	fp = fopen(path, "wb");
 	if (fp == NULL) {
 		return false;
 	}
@@ -187,11 +202,19 @@ bool timedecay_save(timedecay tf, const char *path) {
 	return true;
 }
 
-// TODO add comment/documentation
+/* timedecay_load() -- load a time-decaying bloom filter from disk
+ *
+ * Args:
+ *     tf   - timedecay struct of new filter
+ *     path - location of filter on disk
+ *
+ * Returns:
+ *     true on success, false on failure
+ */
 bool timedecay_load(timedecay *tf, const char *path) {
 	FILE *fp;
 
-	fp = fopen(path, "r");
+	fp = fopen(path, "rb");
 	if (fp == NULL) {
 		return false;
 	}
