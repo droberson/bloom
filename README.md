@@ -1,6 +1,8 @@
 # bloom
 
 ![License](https://img.shields.io/github/license/droberson/bloom)
+![GitHub Issues](https://img.shields.io/github/issues/droberson/bloom)
+
 
 This project includes an implementation of probabilistic data
 structures in C:
