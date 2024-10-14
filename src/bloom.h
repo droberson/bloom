@@ -13,9 +13,9 @@ typedef uint64_t (*hash_func64_t)(const void *key, size_t len, uint64_t seed);
 #endif /* UINTPTR_MAX */
 
 typedef struct {
-	uint32_t size;              /* size of bloom filter */
-	uint32_t hashcount;         /* number of hashes per element */
-	uint32_t bitmap_size;       /* size of bitmap */
+	uint64_t size;              /* size of bloom filter */
+	uint64_t hashcount;         /* number of hashes per element */
+	uint64_t bitmap_size;       /* size of bitmap */
 	uint8_t  *bitmap;           /* bitmap of bloom filter */
 //	hash_funct_t hash_function; /* hash function to use. default: mmh3 */
 } bloomfilter;

@@ -21,7 +21,7 @@
  * Returns:
  *     unsigned integer
  */
-static uint32_t ideal_size(const uint32_t expected, const float accuracy) {
+static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
 	return -(expected * log(accuracy) / pow(log(2.0), 2));
 }
 
@@ -55,7 +55,7 @@ static time_t get_monotonic_time() {
  * Returns:
  *     true on success, false on failure
  */
-bool timedecay_init(timedecay *tf, const uint32_t expected, const float accuracy, const uint32_t timeout) {
+bool timedecay_init(timedecay *tf, const uint64_t expected, const float accuracy, const uint64_t timeout) {
 	tf->size      = ideal_size(expected, accuracy);
 	tf->hashcount = (tf->size / expected) * log(2);
 	tf->timeout   = timeout;

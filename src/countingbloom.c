@@ -20,7 +20,7 @@ static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
 	return -(expected * log(accuracy) / pow(log(2.0), 2));
 }
 
-bool countingbloom_init(countingbloomfilter *cbf, const uint32_t expected, const float accuracy) {
+bool countingbloom_init(countingbloomfilter *cbf, const uint64_t expected, const float accuracy) {
 	cbf->size            = ideal_size(expected, accuracy);
 	cbf->hashcount       = (cbf->size / expected) * log(2);
 	cbf->countermap      = calloc(cbf->size, sizeof(uint8_t));

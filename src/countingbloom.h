@@ -12,7 +12,7 @@ typedef struct {
 	uint8_t *countermap;        /* map of counting bloom filter */
 } countingbloomfilter;
 
-bool countingbloom_init(countingbloomfilter *, const uint32_t, const float);
+bool countingbloom_init(countingbloomfilter *, const uint64_t, const float);
 void countingbloom_destroy(countingbloomfilter);
 bool countingbloom_lookup(const countingbloomfilter, const uint8_t *, const size_t);
 bool countingbloom_lookup_string(const countingbloomfilter, const char *);
