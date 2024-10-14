@@ -1,5 +1,7 @@
 # bloom
 
+![License](https://img.shields.io/github/license/droberson/bloom)
+
 This project includes an implementation of probabilistic data
 structures in C:
 
@@ -44,6 +46,13 @@ counters. If larger counters are needed, this can be modified to use
 `uint16_t` to increase counter capacity to 65535, however this doubles
 the memory and storage required to represent a filter. `uint32_t`
 would provide even larger counters, but at quadruple the size.
+
+## Cuckoo filters
+
+Cuckoo filters are a similar concept to bloom filters, but implemented
+with a different strategy. In some cases, they may be more
+space-efficient or performant than a bloom filter. Cuckoo filters also
+support deletion, whereas bloom filters do not.
 
 # Building
 
