@@ -32,10 +32,16 @@ target_include_directories(bloom_shared PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(bloom_shared PUBLIC m)
 
 # Optionally add an example/test program
-add_executable(test_bloom tests/main.c)
+add_executable(test_bloom_basic tests/test_bloom_basic.c)
+add_executable(test_timedecay_basic tests/test_timedecay_basic.c)
+add_executable(test_countingbloom_basic tests/test_countingbloom_basic.c)
+add_executable(test_cuckoo_basic tests/test_cuckoo_basic.c)
 
 # Link the example program with the shared library
-target_link_libraries(test_bloom PRIVATE bloom_shared)
+target_link_libraries(test_bloom_basic PRIVATE bloom_shared)
+target_link_libraries(test_timedecay_basic PRIVATE bloom_shared)
+target_link_libraries(test_countingbloom_basic PRIVATE bloom_shared)
+target_link_libraries(test_cuckoo_basic PRIVATE bloom_shared)
 
 # Install rules
 install(TARGETS bloom_shared # bloom_static
@@ -52,4 +58,7 @@ install(CODE "execute_process(COMMAND ldconfig)")
 
 # Enable testing
 enable_testing()
-add_test(NAME TestBloom COMMAND bin/test_bloom)
+add_test(NAME bloom COMMAND bin/test_bloom_basic)
+add_test(NAME timedecay COMMAND bin/test_timedecay_basic)
+add_test(NAME countingbloom COMMAND bin/test_countingbloom_basic)
+add_test(NAME cuckoo COMMAND bin/test_cuckoo_basic)
