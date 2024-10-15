@@ -7,6 +7,7 @@
 #include "mmh3.h"
 #include "countingbloom.h"
 
+
 /* ideal_size() -- calculate ideal size of a filter
  *
  * Args:
@@ -23,6 +24,12 @@ static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
 /* countingbloom_init() -- initialize counting bloom filter
  *
  * Args:
+ *     cbf      - filter to initialize
+ *     expected - expected number of elements in filter
+ *     accuracy - margin of acceptable error. ex: 0.01 is "99.99%" accurate
+ *
+ * Returns:
+ *     true on success, false on failure
  */
 bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const float accuracy) {
 	cbf->size            = ideal_size(expected, accuracy);
@@ -34,10 +41,29 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
 	return true;
 }
 
+/* countingbloom_destroy() -- free memory allocated by countingbloom_init()
+ *
+ * Args:
+ *     cbf - filter to free
+ *
+ * Returns:
+ *     Nothing
+ */
 void countingbloom_destroy(countingbloomfilter cbf) {
 	free(cbf.countermap);
 }
 
+/* countingbloom_lookup() -- check if an element is likely in the filter
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - element to look up
+ *     len     - length of element in bytes
+ *
+ * Returns:
+ *     true if element is probably in the filter
+ *     false if element is definitely not in the filter
+ */
 bool countingbloom_lookup(const countingbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
@@ -54,12 +80,30 @@ bool countingbloom_lookup(const countingbloomfilter cbf, void *element, const si
 	return true;
 }
 
-
+/* countingbloom_lookup_string() -- helper function for looking up strings
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - string to look up
+ *
+ * Returns:
+ *     true if element is probably in the set
+ *     false if element is definitely not in the set
+ */
 bool countingbloom_lookup_string(const countingbloomfilter cbf, const char *element) {
 	return countingbloom_lookup(cbf, (uint8_t *)element, strlen(element));
 }
 
-
+/* countingbloom_add() -- add an element to a counting bloom filter
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - element to add
+ *     len     - length of element in bytes
+ *
+ * Returns:
+ *     Nothing
+ */
 void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
@@ -73,10 +117,29 @@ void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len)
 	}
 }
 
+/* countingbloom_add_string() -- helper function for adding strings
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - string to add to the filter
+ *
+ * Returns:
+ *     Nothing
+ */
 void countingbloom_add_string(countingbloomfilter cbf, const char *element) {
 	countingbloom_add(cbf, (uint8_t *)element, strlen(element));
 }
 
+/* countingbloom_remove() -- remove an element from a counting bloom filter
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - element to remove
+ *     len     - length of element in bytes
+ *
+ * Returns:
+ *     Nothing
+ */
 void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
@@ -101,6 +164,15 @@ void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t l
 	}
 }
 
+/* countingbloom_remove_string() -- helper function to remove strings
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - string to remove
+ *
+ * Returns:
+ *     Nothing
+ */
 void countingbloom_remove_string(countingbloomfilter cbf, const char *element) {
 	countingbloom_remove(cbf, (uint8_t *)element, strlen(element));
 }
