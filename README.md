@@ -20,6 +20,9 @@ small amount of space, with fast lookups and insertions of elements.
 Bloom filters have been used to implement caches, spell checkers, and
 more.
 
+This blog post gives a great explanation with visual aids to
+understand these data structures: https://samwho.dev/bloom-filters/
+
 https://en.wikipedia.org/wiki/Bloom_filter
 
 
