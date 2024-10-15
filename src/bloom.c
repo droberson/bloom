@@ -38,6 +38,9 @@ bool bloom_init(bloomfilter *bf, const size_t expected, const float accuracy) {
 	bf->size        = ideal_size(expected, accuracy);
 	bf->hashcount   = (bf->size / expected) * log(2);
 	bf->bitmap_size = ceil(bf->size / 8);
+	bf->expected    = expected;
+	bf->accuracy    = accuracy;
+	bf->insertions  = 0;
 
 	bf->bitmap      = calloc(bf->bitmap_size, sizeof(uint8_t));
 	if (bf->bitmap == NULL) {
@@ -52,8 +55,20 @@ void bloom_destroy(bloomfilter bf) {
 	free(bf.bitmap);
 }
 
+/* bloom_capacity() - returns the occupancy of a bloom filter as a percentage
+ *
+ * Args:
+ *     bf - filter to check capacity
+ *
+ * Returns:
+ *     a double representing the occupancy of the bloom filter
+ */
+double bloom_capacity(bloomfilter bf) {
+	return ((double)bf.insertions / (double)bf.expected) * 100.0;
+}
+
 // TODO comment/documentation
-bool bloom_lookup(const bloomfilter bf, const uint8_t *element, const size_t len) {
+bool bloom_lookup(const bloomfilter bf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t result;
 	uint64_t bytepos;
@@ -80,24 +95,28 @@ bool bloom_lookup_string(const bloomfilter bf, const char *element) {
 }
 
 // TODO comment/documentation
-void bloom_add(bloomfilter bf, const uint8_t *element, const size_t len) {
+void bloom_add(bloomfilter *bf, void *element, const size_t len) {
 	uint64_t  hash[2];
 	uint64_t  result;
 	uint64_t  bytepos;
 	uint64_t  bitpos;
 
-	for (int i = 0; i < bf.hashcount; i++) {
+	for (int i = 0; i < bf->hashcount; i++) {
 		mmh3_128(element, len, i, hash);
-		result = ((hash[0] % bf.size) + (hash[1] % bf.size)) % bf.size;
+		result = ((hash[0] % bf->size) + (hash[1] % bf->size)) % bf->size;
 
 		bytepos = ceil(result / 8);
 		bitpos  = result % 8;
-		bf.bitmap[bytepos] |= (0x01 << bitpos);
+		bf->bitmap[bytepos] |= (0x01 << bitpos);
 	}
+
+	// TODO don't increment if all bits are set
+	printf("insert: %d %d\n", bf->expected, bf->insertions);
+	bf->insertions += 1;
 }
 
 // TODO comment/documentation
-void bloom_add_string(bloomfilter bf, const char *element) {
+void bloom_add_string(bloomfilter *bf, const char *element) {
 	bloom_add(bf, (uint8_t *)element, strlen(element));
 }
 

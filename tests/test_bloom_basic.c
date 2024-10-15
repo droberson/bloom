@@ -1,21 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "bloom.h"
 
 int main() {
 	bloomfilter bf;
 
-	puts("Initializing filter with 20 expected elements and 99.99% accuracy\n");
+	puts("Initializing filter with 15 expected elements and 99.99% accuracy\n");
 	bloom_init(&bf, 15, 0.01);
 	printf("size: %d\n", bf.size);
 	printf("hashcount: %d\n", bf.hashcount);
 	printf("bitmap size: %d\n", bf.bitmap_size);
 
 	// add some elements to the bloom filter
-	bloom_add_string(bf, "asdf");
-	bloom_add_string(bf, "bar");
-	bloom_add_string(bf, "foo");
+	bloom_add(&bf, "asdf", strlen("asdf"));
+	bloom_add_string(&bf, "bar");
+	bloom_add_string(&bf, "foo");
 
 	// Look up some stuff
 	bool result;
@@ -49,6 +50,7 @@ int main() {
 	}
 
 	// Hex dump the bitmap
+	printf("occupancy: %lf %d\n", bloom_capacity(bf), bf.insertions);
 	printf("filter hex dump: ");
 	for (size_t i = 0; i < bf.bitmap_size; i++) {
 		printf("%02x ", bf.bitmap[i]);
