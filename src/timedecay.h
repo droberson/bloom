@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* timedecay -- time-decaying bloom filter structure
+ */
 typedef struct {
 	uint64_t size;          /* size of time filter */
 	uint64_t hashcount;     /* number of hashes per element */
@@ -15,6 +17,8 @@ typedef struct {
 	time_t   *filter;       /* array of time_t elements */
 } timedecay;
 
+/* function definitions
+ */
 bool timedecay_init(timedecay *, const uint64_t, const float, const uint64_t);
 void timedecay_destroy(timedecay);
 void timedecay_add(timedecay, const uint8_t *, const size_t);

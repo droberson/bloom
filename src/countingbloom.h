@@ -1,3 +1,5 @@
+/* countinbloom.h
+ */
 #ifndef COUNTINGBLOOM_H
 #define COUNTINGBLOOM_H
 

@@ -1,3 +1,7 @@
+/* mmh3.c
+ * TODO: explore different hashing algorithms
+ * TODO: tests; accuracy, distribution, ...
+ */
 #include <string.h>
 #include <stdint.h>
 
