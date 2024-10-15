@@ -12,6 +12,7 @@ typedef struct {
 	uint8_t *countermap;        /* map of counting bloom filter */
 } countingbloomfilter;
 
+// TODO add countingbloom_count(countingbloomfilter, element) -- returns count
 bool countingbloom_init(countingbloomfilter *, const uint64_t, const float);
 void countingbloom_destroy(countingbloomfilter);
 bool countingbloom_lookup(const countingbloomfilter, const uint8_t *, const size_t);
