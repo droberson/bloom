@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// TODO: implement 32, 64 bit functions?
+// TODO: implement 32, 64 bit functions? Need to test on a 32 bit system.
 #if UINTPTR_MAX == 0xffffffff
 typedef uint32_t (*hash_func32_t)(const void *key, size_t len, uint32_t seed);
 #define DEFAULT_HASH_FUNC_BITS
@@ -12,7 +12,10 @@ typedef uint32_t (*hash_func32_t)(const void *key, size_t len, uint32_t seed);
 typedef uint64_t (*hash_func64_t)(const void *key, size_t len, uint64_t seed);
 #endif /* UINTPTR_MAX */
 
-// TODO track insertion count and expected number of elements
+/* bloomfilter -- typedef representing a bloom filter
+ *
+ * TODO: specify hash function?
+ */
 typedef struct {
 	size_t   size;              /* size of bloom filter */
 	size_t   hashcount;         /* number of hashes per element */
@@ -21,9 +24,10 @@ typedef struct {
 	size_t   insertions;        /* # of insertions into the filter */
 	float    accuracy;          /* desired margin of error */
 	uint8_t *bitmap;            /* bitmap of bloom filter */
-//	hash_funct_t hash_function; /* hash function to use. default: mmh3 */
 } bloomfilter;
 
+/* function declarations
+ */
 bool   bloom_init(bloomfilter *, const size_t, const float);
 void   bloom_destroy(bloomfilter);
 double bloom_capacity(bloomfilter);
