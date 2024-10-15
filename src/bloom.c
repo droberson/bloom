@@ -146,7 +146,6 @@ void bloom_add(bloomfilter *bf, void *element, const size_t len) {
 	}
 
 	// TODO don't increment if all bits are set
-	printf("insert: %d %d\n", bf->expected, bf->insertions);
 	bf->insertions += 1;
 }
 
