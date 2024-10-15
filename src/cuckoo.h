@@ -16,11 +16,12 @@ typedef struct {
 } cuckoofilter;
 
 // TODO remove parameter names, const where appropriate
+// TODO _add_string, _lookup_string, _remove_string
 bool cuckoo_init(cuckoofilter *, size_t, size_t, size_t);
 void cuckoo_destroy(cuckoofilter);
-bool cuckoo_add(cuckoofilter cf, const uint8_t *key, size_t len);
-bool cuckoo_lookup(cuckoofilter cf, const uint8_t *key, size_t len);
-bool cuckoo_remove(cuckoofilter cf, const uint8_t *key, size_t len);
+bool cuckoo_add(cuckoofilter cf, void *key, size_t len);
+bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len);
+bool cuckoo_remove(cuckoofilter cf, void *key, size_t len);
 bool cuckoo_save(cuckoofilter cf, const char *path);
 bool cuckoo_load(cuckoofilter *cf, const char *path);
 

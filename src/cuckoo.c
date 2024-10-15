@@ -27,7 +27,7 @@ void cuckoo_destroy(cuckoofilter cf) {
 }
 
 
-bool cuckoo_add(cuckoofilter cf, const uint8_t *key, size_t len) {
+bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 	uint64_t hash = mmh3_64(key, len, 0);
 	size_t i1 = hash % cf.num_buckets;
 	size_t i2 = (i1 ^ (hash >> 32)) % cf.num_buckets;
@@ -56,7 +56,7 @@ bool cuckoo_add(cuckoofilter cf, const uint8_t *key, size_t len) {
 }
 
 
-bool cuckoo_lookup(cuckoofilter cf, const uint8_t *key, size_t len) {
+bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
 	uint64_t hash = mmh3_64(key, len, 0);
 	size_t i1 = hash % cf.num_buckets;
 	size_t i2 = (i1 ^ (hash >> 32)) % cf.num_buckets;
@@ -72,7 +72,7 @@ bool cuckoo_lookup(cuckoofilter cf, const uint8_t *key, size_t len) {
 }
 
 
-bool cuckoo_remove(cuckoofilter cf, const uint8_t *key, size_t len) {
+bool cuckoo_remove(cuckoofilter cf, void *key, size_t len) {
 	uint64_t hash = mmh3_64(key, len, 0);
 	size_t i1 = hash % cf.num_buckets;
 	size_t i2 = (i1 ^ (hash >> 32)) % cf.num_buckets;
@@ -91,7 +91,7 @@ bool cuckoo_remove(cuckoofilter cf, const uint8_t *key, size_t len) {
 	return false; // probably not in cuckoo filter; remove failed.
 }
 
-/*
+/* TODO
 bool cuckoo_save(cuckoofilter cf, const char *path);
 bool cuckoo_load(cuckoofilter *cf, const char *path);
 */
