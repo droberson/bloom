@@ -7,7 +7,7 @@
 #include "mmh3.h"
 #include "countingbloom.h"
 
-/* ideal_size() - calculate ideal size of a filter
+/* ideal_size() -- calculate ideal size of a filter
  *
  * Args:
  *     expected - maximum expected number of elements
@@ -20,7 +20,11 @@ static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
 	return -(expected * log(accuracy) / pow(log(2.0), 2));
 }
 
-bool countingbloom_init(countingbloomfilter *cbf, const uint64_t expected, const float accuracy) {
+/* countingbloom_init() -- initialize counting bloom filter
+ *
+ * Args:
+ */
+bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const float accuracy) {
 	cbf->size            = ideal_size(expected, accuracy);
 	cbf->hashcount       = (cbf->size / expected) * log(2);
 	cbf->countermap      = calloc(cbf->size, sizeof(uint8_t));
@@ -34,7 +38,7 @@ void countingbloom_destroy(countingbloomfilter cbf) {
 	free(cbf.countermap);
 }
 
-bool countingbloom_lookup(const countingbloomfilter cbf, const uint8_t *element, const size_t len) {
+bool countingbloom_lookup(const countingbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
 
@@ -56,7 +60,7 @@ bool countingbloom_lookup_string(const countingbloomfilter cbf, const char *elem
 }
 
 
-void countingbloom_add(countingbloomfilter cbf, const uint8_t *element, const size_t len) {
+void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
 
@@ -73,7 +77,7 @@ void countingbloom_add_string(countingbloomfilter cbf, const char *element) {
 	countingbloom_add(cbf, (uint8_t *)element, strlen(element));
 }
 
-void countingbloom_remove(countingbloomfilter cbf, const uint8_t *element, const size_t len) {
+void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
 
@@ -101,8 +105,10 @@ void countingbloom_remove_string(countingbloomfilter cbf, const char *element) {
 	countingbloom_remove(cbf, (uint8_t *)element, strlen(element));
 }
 
-/*bool countingbloom_save(countingbloomfilter cbf, const char *path) {
+/* TODO
+bool countingbloom_save(countingbloomfilter cbf, const char *path) {
 }
+
 bool countingbloom_load(countingbloomfilter *cbf, const char *path) {
 }
 */
