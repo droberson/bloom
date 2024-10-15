@@ -50,12 +50,19 @@ bool bloom_init(bloomfilter *bf, const size_t expected, const float accuracy) {
 	return true;
 }
 
-// TODO: comment/documentation
+/* bloom_destroy() -- free a bloom filter's allocated memory
+ *
+ * Args:
+ *     bf - filter to free
+ *
+ * Returns:
+ *     Nothing
+ */
 void bloom_destroy(bloomfilter bf) {
 	free(bf.bitmap);
 }
 
-/* bloom_capacity() - returns the occupancy of a bloom filter as a percentage
+/* bloom_capacity() -- returns the occupancy of a bloom filter as a percentage
  *
  * Args:
  *     bf - filter to check capacity
@@ -67,12 +74,22 @@ double bloom_capacity(bloomfilter bf) {
 	return ((double)bf.insertions / (double)bf.expected) * 100.0;
 }
 
-// TODO comment/documentation
+/* bloom_lookup() -- check if an element is likely in a filter
+ *
+ * Args:
+ *     bf      - filter to use
+ *     element - element to lookup
+ *     len     - element length in bytes
+ *
+ * Returns:
+ *     true if element is probably in filter
+ *     false if element is definitely not in filter
+ */
 bool bloom_lookup(const bloomfilter bf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t result;
 	uint64_t bytepos;
-	uint64_t bitpos;
+	uint8_t  bitpos;
 
 	for (int i = 0; i < bf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
@@ -89,12 +106,30 @@ bool bloom_lookup(const bloomfilter bf, void *element, const size_t len) {
 	return true;
 }
 
-// TODO comment/documenatation
+/* bloom_lookup_string() -- helper function for bloom_lookup() to handle strings
+ *
+ * Args:
+ *     bf      - filter to use
+ *     element - element to lookup
+ *
+ * Returns
+ *     true if element is likely in the filter
+ *     false if element is definitely not in the filter
+ */
 bool bloom_lookup_string(const bloomfilter bf, const char *element) {
 	return bloom_lookup(bf, (uint8_t *)element, strlen(element));
 }
 
-// TODO comment/documentation
+/* bloom_add() -- add/insert an element into a bloom filter
+ *
+ * Args:
+ *     bf      - filter to use
+ *     element - element to add
+ *     len     - element length in bytes
+ *
+ * Returns:
+ *     Nothing
+ */
 void bloom_add(bloomfilter *bf, void *element, const size_t len) {
 	uint64_t  hash[2];
 	uint64_t  result;
@@ -115,7 +150,15 @@ void bloom_add(bloomfilter *bf, void *element, const size_t len) {
 	bf->insertions += 1;
 }
 
-// TODO comment/documentation
+/* bloom_add_string() -- helper function for bloom_add() to handle strings
+ *
+ * Args:
+ *     bf      - filter to use
+ *     element - element to add to filter
+ *
+ * Returns:
+ *     Nothing
+ */
 void bloom_add_string(bloomfilter *bf, const char *element) {
 	bloom_add(bf, (uint8_t *)element, strlen(element));
 }
@@ -137,7 +180,7 @@ void bloom_add_string(bloomfilter *bf, const char *element) {
  *      true on success, false on failure
  */
 bool bloom_save(bloomfilter bf, const char *path) {
-	FILE	*fp;
+	FILE *fp;
 
 	fp = fopen(path, "wb");
 	if (fp == NULL) {
@@ -162,7 +205,7 @@ bool bloom_save(bloomfilter bf, const char *path) {
  *     true on success, false on failure
  */
 bool bloom_load(bloomfilter *bf, const char *path) {
-	FILE	*fp;
+	FILE *fp;
 
 	fp = fopen(path, "rb");
 	if (fp == NULL) {
