@@ -12,6 +12,7 @@ typedef uint32_t (*hash_func32_t)(const void *key, size_t len, uint32_t seed);
 typedef uint64_t (*hash_func64_t)(const void *key, size_t len, uint64_t seed);
 #endif /* UINTPTR_MAX */
 
+// TODO track insertion count and expected number of elements
 typedef struct {
 	uint64_t size;              /* size of bloom filter */
 	uint64_t hashcount;         /* number of hashes per element */
