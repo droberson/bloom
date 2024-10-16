@@ -7,6 +7,8 @@
 #include "cuckoo.h"
 #include "mmh3.h"
 
+// TODO ideal size calculator
+
 bool cuckoo_init(cuckoofilter *cf,
 				 size_t num_buckets,
 				 size_t bucket_size,
