@@ -144,24 +144,21 @@ void countingbloom_add_string(countingbloomfilter cbf, const char *element) {
  */
 void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
-	uint64_t position;
+	uint64_t positions[cbf.hashcount];
 
 	bool shouldremove = true;
 	for (int i = 0; i < cbf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
-		position = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
-		if (cbf.countermap[position] == 0) {
+		positions[i] = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
+		if (cbf.countermap[positions[i]] == 0) {
 			shouldremove = false;
 			break;
 		}
 	}
 
-	// TODO refactor to avoid hashing twice.
 	if (shouldremove) {
 		for (int i = 0; i < cbf.hashcount; i++) {
-			mmh3_128(element, len, i, hash);
-			position = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
-			cbf.countermap[position] -= 1;
+			cbf.countermap[positions[i]] -= 1;
 		}
 	}
 }
