@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <limits.h>
 
 #include "timedecay.h"
 #include "mmh3.h"
@@ -54,19 +55,29 @@ static time_t get_monotonic_time() {
  *
  * Returns:
  *     true on success, false on failure
+ *
+ * TODO: report reason for error.
  */
-bool timedecay_init(timedecay *tf, const uint64_t expected, const float accuracy, const uint64_t timeout) {
-	tf->size      = ideal_size(expected, accuracy);
-	tf->hashcount = (tf->size / expected) * log(2);
-	tf->timeout   = timeout;
-	tf->filter    = calloc(tf->size, sizeof(time_t));
+bool timedecay_init(timedecay *tf, const size_t expected, const float accuracy, const size_t timeout) {
+	tf->size       = ideal_size(expected, accuracy);
+	tf->hashcount  = (tf->size / expected) * log(2);
+	tf->timeout    = timeout;
+	tf->expected   = expected;
+	tf->accuracy   = accuracy;
+	tf->start_time = get_monotonic_time();
+
+	// decide which datatype to use for storing timestamps
+	int bytes;
+	if (sizeof(time_t) == 4 && timeout > UINT32_MAX) { return false; }
+	tf->max_time = UINT64_MAX;
+	if (timeout < UINT32_MAX) { bytes = 4; tf->max_time = UINT32_MAX; }
+	if (timeout < UINT16_MAX) { bytes = 2; tf->max_time = UINT16_MAX; }
+	if (timeout < UINT8_MAX)  { bytes = 1; tf->max_time = UINT8_MAX; }
+	tf->bytes = bytes;
+
+	tf->filter = calloc(tf->size, bytes);
 	if (tf->filter == NULL) {
 		return false;
-	}
-
-	/* Initialize filter with all zero values */
-	for (int i = 0; i < tf->size; i++) {
-		tf->filter[i] = 0;
 	}
 
 	return true;
@@ -94,15 +105,29 @@ void timedecay_destroy(timedecay tf) {
  * Returns:
  *     Nothing
  */
-void timedecay_add(timedecay tf, const uint8_t *element, const size_t len) {
+void timedecay_add(timedecay *tf, void *element, const size_t len) {
 	uint64_t    result;
 	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
+	size_t      ts = ((now - tf->start_time) % tf->max_time) + 1;
 
-	for (int i = 0; i < tf.hashcount; i++) {
+	for (int i = 0; i < tf->hashcount; i++) {
 		mmh3_128(element, len, i, hash);
-		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
-		tf.filter[result] = now;
+		result = ((hash[0] % tf->size) + (hash[1] % tf->size)) % tf->size;
+		switch(tf->bytes) {
+		case 1:
+			((uint8_t *)tf->filter)[result] = ts;
+			break;
+		case 2:
+			((uint16_t *)tf->filter)[result] = ts;
+			break;
+		case 4:
+			((uint32_t *)tf->filter)[result] = ts;
+			break;
+		case 8:
+			((uint64_t *)tf->filter)[result] = ts;
+			break;
+		}
 	}
 }
 
@@ -116,7 +141,7 @@ void timedecay_add(timedecay tf, const uint8_t *element, const size_t len) {
  *     Nothing
  */
 void timedecay_add_string(timedecay tf, const char *element) {
-	timedecay_add(tf, (uint8_t *)element, strlen(element));
+	timedecay_add(&tf, (uint8_t *)element, strlen(element));
 }
 
 /* timedecay_lookup() - check if element exists within timedecay
@@ -130,16 +155,35 @@ void timedecay_add_string(timedecay tf, const char *element) {
  *     true if element is in filter
  *     false if element is not in filter
  */
-bool timedecay_lookup(const timedecay tf, const uint8_t *element, const size_t len) {
+bool timedecay_lookup(const timedecay tf, void *element, const size_t len) {
 	uint64_t    result;
 	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
+	size_t      ts = ((now - tf.start_time) % tf.max_time) + 1;
+
+	if ((now - tf.start_time) > tf.max_time) { return false; }
 
 	for (int i = 0; i < tf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
 
-		if (((now - tf.filter[result]) > tf.timeout) || (tf.filter[result] == 0)) {
+		size_t value;
+		switch(tf.bytes) {
+		case 1:
+			value = ((uint8_t *)tf.filter)[result];
+			break;
+		case 2:
+			value = ((uint16_t *)tf.filter)[result];
+			break;
+		case 4:
+			value = ((uint32_t *)tf.filter)[result];
+			break;
+		case 8:
+			value = ((uint64_t *)tf.filter)[result];
+			break;
+		}
+
+		if (((ts - value) > tf.timeout) || (value == 0)) {
 			return false;
 		}
 	}
@@ -153,16 +197,35 @@ bool timedecay_lookup_string(const timedecay tf, const char *element) {
 }
 
 // TODO add comment/documentation
-bool timedecay_lookup_time(const timedecay tf, const uint8_t *element, const size_t len, const size_t timeout) {
+bool timedecay_lookup_time(const timedecay tf, void *element, const size_t len, const size_t timeout) {
 	uint64_t    result;
 	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
+	size_t      ts = (now - tf.start_time) % tf.max_time;
+
+	if (ts > tf.max_time) { return false; }
 
 	for (int i = 0; i < tf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
 
-		if (((now - tf.filter[result]) > timeout) || (tf.filter[result] == 0)) {
+		size_t value;
+		switch(tf.bytes) {
+		case 1:
+			value = ((uint8_t *)tf.filter)[result];
+			break;
+		case 2:
+			value = ((uint16_t *)tf.filter)[result];
+			break;
+		case 4:
+			value = ((uint32_t *)tf.filter)[result];
+			break;
+		case 8:
+			value = ((uint64_t *)tf.filter)[result];
+			break;
+		}
+
+		if (((ts - value) > timeout) || (value == 0)) {
 			return false;
 		}
 	}
