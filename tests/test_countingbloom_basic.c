@@ -38,6 +38,20 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
+	size_t count = countingbloom_count_string(cbf, "multi");
+	printf("count \"multi\": %d\n", count);
+	if (count != 2) {
+		fprintf(stderr, "FAILURE: count should be 2\n");
+		return EXIT_FAILURE;
+	}
+
+	count = countingbloom_count_string(cbf, "fizzbuzz");
+	printf("count \"fizzbuzz\": %d\n", count);
+	if (count != 0) {
+		fprintf(stderr, "FAILURE: count should be 0\n");
+		return EXIT_FAILURE;
+	}
+
 	// display filter
 	printf("contents: ");
 	for (size_t i = 0; i < cbf.size; i++) {

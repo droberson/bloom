@@ -1,4 +1,6 @@
 /* countingbloom.c
+ *
+ * TODO: 16, 32, 64 bit counters if count is expected to exceed 255, 65535, ...
  */
 #include <string.h>
 #include <stdint.h>
@@ -53,6 +55,48 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
  */
 void countingbloom_destroy(countingbloomfilter cbf) {
 	free(cbf.countermap);
+}
+
+/* countingbloom_count() -- get approximate count of an element in the filter
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - element to count
+ *     len     - length of element
+ *
+ * Returns:
+ *     size_t representing the approximate count of 'element' in the filter
+ */
+size_t countingbloom_count(const countingbloomfilter cbf, void *element, size_t len) {
+	uint64_t hash[2];
+	uint64_t position;
+	uint8_t  count = 0;
+
+	for (int i = 0; i < cbf.hashcount; i++) {
+		mmh3_128(element, len, i, hash);
+		position = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
+
+		if (cbf.countermap[position] > count) {
+			count = cbf.countermap[position];
+		}
+	}
+
+	return count;
+}
+
+/* countingbloom_count_string() -- helper function to get approximate count of
+ *                                 a string element in the filter.
+ *
+ * Args:
+ *     cbf     - filter to use
+ *     element - element to count
+ *
+ * Returns:
+ *     size_t representing the approximate count of 'element' in the filter
+ */
+
+size_t countingbloom_count_string(const countingbloomfilter cbf, char *element) {
+	return countingbloom_count(cbf, (uint8_t *)element, strlen(element));
 }
 
 /* countingbloom_lookup() -- check if an element is likely in the filter
@@ -113,7 +157,7 @@ void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len)
 	for (int i = 0; i < cbf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		position = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
-		if (cbf.countermap[position] != 255) {
+		if (cbf.countermap[position] != 255) { // check for overflow condition
 			cbf.countermap[position] += 1;
 		}
 	}
