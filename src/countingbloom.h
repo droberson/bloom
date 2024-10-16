@@ -1,4 +1,5 @@
 /* countingbloom.h
+ * TODO: 16, 32 bit counters?
  */
 #ifndef COUNTINGBLOOM_H
 #define COUNTINGBLOOM_H
@@ -6,7 +7,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// TODO: 16 bit counters?
+/* countingbloomfilter -- structure for a counting bloom filter
+ */
 typedef struct {
 	size_t size;                /* size of counting bloom filter */
 	size_t hashcount;           /* number of hashes per element */
