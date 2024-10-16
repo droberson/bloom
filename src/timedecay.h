@@ -1,12 +1,5 @@
 /* timedecay.h
- *
- * TODO: 8, 16, or 32 bit representations of time instead of time_t
- *       - i think i can do this by subtracting start time from current time,
- *         checking if this is greater than max value of uint8_t, uint16_t, etc.
- *         if so, it is expired. otherwise start time % (now - start time)
- *         should yield a counter using less space than a time_t. This would
- *         be useful for filters requiring less precision than however many
- *         seconds the filter requires
+ * TODO: calculate used/remaining capacity of filters
  */
 #ifndef TIMEDECAY_H
 #define TIMEDECAY_H
