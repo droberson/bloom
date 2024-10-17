@@ -9,7 +9,7 @@
 /* cuckoobucket -- typedef for cuckoo filter bucket
  */
 typedef struct {
-	uint64_t fingerprint;
+	uint32_t fingerprint;
 } cuckoobucket;
 
 /* cuckoofilter -- cuckoo filter structure

@@ -7,16 +7,13 @@
 #include "cuckoo.h"
 #include "mmh3.h"
 
-// TODO ideal size calculator
-
 bool cuckoo_init(cuckoofilter *cf, size_t num_buckets, size_t bucket_size,
 				 size_t max_kicks) {
 	cf->num_buckets = num_buckets;
 	cf->bucket_size = bucket_size;
 	cf->max_kicks   = max_kicks;
-	cf->buckets     = (cuckoobucket *)calloc(num_buckets * bucket_size,
-											 sizeof(cuckoobucket));
-	if (!cf->buckets) {
+	cf->buckets     = (cuckoobucket *)calloc(num_buckets * bucket_size, sizeof(cuckoobucket));
+	if (cf->buckets == NULL) {
 		return false;
 	}
 
@@ -28,28 +25,30 @@ void cuckoo_destroy(cuckoofilter cf) {
 }
 
 bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
-	uint64_t hash = mmh3_64(key, len, 0);
-	size_t i1 = hash % cf.num_buckets;
-	size_t i2 = (i1 ^ (hash >> 32)) % cf.num_buckets;
+	uint32_t hash        = mmh3_32(key, len, 0);
+	uint16_t fingerprint = (uint16_t)(hash & 0xffff); // lower 16 bits
+	size_t i1            = hash % cf.num_buckets;
+	size_t i2            = (i1 ^ fingerprint) % cf.num_buckets; // upper 16 bits
 
 	for (size_t b = 0; b < cf.bucket_size; b++) {
 		if (cf.buckets[i1 * cf.bucket_size + b].fingerprint == 0) {
-			cf.buckets[i1 * cf.bucket_size + b].fingerprint = hash;
+			cf.buckets[i1 * cf.bucket_size + b].fingerprint = fingerprint;
 			return true;
 		}
 		if (cf.buckets[i2 * cf.bucket_size + b].fingerprint == 0) {
-			cf.buckets[i2 * cf.bucket_size + b].fingerprint = hash;
+			cf.buckets[i2 * cf.bucket_size + b].fingerprint = fingerprint;
 			return true;
 		}
 	}
 
+	// Eviction
 	size_t index = (rand() % 2) ? i1 : i2;
 	for (size_t kick = 0; kick < cf.max_kicks; kick++) {
 		size_t b = rand() % cf.bucket_size;
-		uint64_t evicted = cf.buckets[index * cf.bucket_size + b].fingerprint;
-		cf.buckets[index * cf.bucket_size + b].fingerprint = hash;
-		hash = evicted;
-		index = (index ^ (hash >> 32)) % cf.num_buckets;
+		uint32_t evicted = cf.buckets[index * cf.bucket_size + b].fingerprint;
+		cf.buckets[index * cf.bucket_size + b].fingerprint = fingerprint;
+		fingerprint = evicted;
+		index = (index ^ fingerprint) % cf.num_buckets;
 	}
 
 	return false; // max kicks reached; insertion failed.
@@ -60,13 +59,14 @@ bool cuckoo_add_string(cuckoofilter cf, char *key) {
 }
 
 bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
-	uint64_t hash = mmh3_64(key, len, 0);
+	uint32_t hash = mmh3_32(key, len, 0);
+	uint16_t fingerprint = (uint16_t)(hash & 0xffff);
 	size_t i1 = hash % cf.num_buckets;
-	size_t i2 = (i1 ^ (hash >> 32)) % cf.num_buckets;
+	size_t i2 = (i1 ^ fingerprint) % cf.num_buckets;
 
 	for (size_t b = 0; b < cf.bucket_size; b++) {
-		if (cf.buckets[i1 * cf.bucket_size + b].fingerprint == hash ||
-			cf.buckets[i2 * cf.bucket_size + b].fingerprint == hash) {
+		if (cf.buckets[i1 * cf.bucket_size + b].fingerprint == fingerprint ||
+			cf.buckets[i2 * cf.bucket_size + b].fingerprint == fingerprint) {
 			return true;
 		}
 	}
@@ -79,16 +79,17 @@ bool cuckoo_lookup_string(cuckoofilter cf, char *key) {
 }
 
 bool cuckoo_remove(cuckoofilter cf, void *key, size_t len) {
-	uint64_t hash = mmh3_64(key, len, 0);
+	uint32_t hash = mmh3_32(key, len, 0);
+	uint16_t fingerprint = (uint16_t)(hash & 0xffff);
 	size_t i1 = hash % cf.num_buckets;
-	size_t i2 = (i1 ^ (hash >> 32)) % cf.num_buckets;
+	size_t i2 = (i1 ^ fingerprint) % cf.num_buckets;
 
 	for (size_t b = 0; b < cf.bucket_size; b++) {
-		if (cf.buckets[i1 * cf.bucket_size + b].fingerprint == hash) {
+		if (cf.buckets[i1 * cf.bucket_size + b].fingerprint == fingerprint) {
 			cf.buckets[i1 * cf.bucket_size + b].fingerprint = 0;
 			return true;
 		}
-		if (cf.buckets[i2 * cf.bucket_size + b].fingerprint == hash) {
+		if (cf.buckets[i2 * cf.bucket_size + b].fingerprint == fingerprint) {
 			cf.buckets[i2 * cf.bucket_size + b].fingerprint = 0;
 			return true;
 		}
