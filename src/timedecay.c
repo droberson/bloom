@@ -174,7 +174,8 @@ bool timedecay_lookup(const timedecay tf, void *element, const size_t len) {
 		case 8:	value = ((uint64_t *)tf.filter)[result]; break;
 		}
 
-		if (((ts - value) > tf.timeout) || (value == 0)) {
+		if (value == 0 ||
+			((ts - value + tf.max_time) % tf.max_time) > tf.timeout) {
 			return false;
 		}
 	}
