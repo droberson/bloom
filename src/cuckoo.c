@@ -69,9 +69,10 @@ bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 		index = (index ^ fingerprint) % cf.num_buckets;
 
 		// re-insert into new bucket
+		size_t new_index_offset = index * cf.bucket_size;
 		for (size_t b = 0; b < cf.bucket_size; b++) {
-			if (cf.buckets[index_offset + b].fingerprint == 0) {
-				cf.buckets[index_offset + b].fingerprint = fingerprint;
+			if (cf.buckets[new_index_offset + b].fingerprint == 0) {
+				cf.buckets[new_index_offset + b].fingerprint = fingerprint;
 				return true;
 			}
 		}
