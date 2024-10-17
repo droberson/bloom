@@ -84,6 +84,9 @@ bool timedecay_init(timedecay *tf, const size_t expected, const float accuracy, 
 		return false;
 	}
 
+	// calculate filter size
+	tf->filter_size = tf->size * tf->bytes;
+
 	return true;
 }
 
