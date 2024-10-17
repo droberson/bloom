@@ -33,8 +33,6 @@ static size_t ideal_size(const size_t expected, const float accuracy) {
  *
  * Returns:
  *     true on success, false on failure
- *
- * TODO: specify which hashing algorithm to use.
  */
 bool bloom_init(bloomfilter *bf, const size_t expected, const float accuracy) {
 	bf->size        = ideal_size(expected, accuracy);
@@ -135,20 +133,27 @@ bool bloom_lookup_string(const bloomfilter bf, const char *element) {
 void bloom_add(bloomfilter *bf, void *element, const size_t len) {
 	uint64_t  hash[2];
 	uint64_t  result;
-	uint64_t  bytepos;
-	uint64_t  bitpos;
+	uint64_t  byte_position;
+	uint64_t  bit_position;
+	bool      all_bits_set = true;
 
 	for (int i = 0; i < bf->hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		result = ((hash[0] % bf->size) + (hash[1] % bf->size)) % bf->size;
 
-		bytepos = ceil(result / 8);
-		bitpos  = result % 8;
-		bf->bitmap[bytepos] |= (0x01 << bitpos);
+		byte_position = ceil(result / 8);
+		bit_position  = result % 8;
+
+		if ((bf->bitmap[byte_position] & (0x01 << bit_position)) == 0) {
+			all_bits_set = false;
+		}
+
+		bf->bitmap[byte_position] |= (0x01 << bit_position);
 	}
 
-	// TODO don't increment if all bits are set
-	bf->insertions += 1;
+	if (all_bits_set == false) {
+		bf->insertions += 1;
+	}
 }
 
 /* bloom_add_string() -- helper function for bloom_add() to handle strings
