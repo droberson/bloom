@@ -72,10 +72,10 @@ bool timedecay_init(timedecay *tf, const size_t expected, const float accuracy, 
 		return false;
 	}
 
-	if      (timeout < UINT8_MAX)  { bytes = 1; tf->max_time = UINT8_MAX; }
-	else if (timeout < UINT16_MAX) { bytes = 2; tf->max_time = UINT16_MAX; }
-	else if (timeout < UINT32_MAX) { bytes = 4; tf->max_time = UINT32_MAX; }
-	else if (timeout < UINT64_MAX) { bytes = 8; tf->max_time = UINT64_MAX; }
+	if      (timeout < UINT8_MAX)   { bytes = 1; tf->max_time = UINT8_MAX; }
+	else if (timeout < UINT16_MAX)  { bytes = 2; tf->max_time = UINT16_MAX; }
+	else if (timeout < UINT32_MAX)  { bytes = 4; tf->max_time = UINT32_MAX; }
+	else if (timeout <= UINT64_MAX) { bytes = 8; tf->max_time = UINT64_MAX; }
 
 	tf->bytes = bytes;
 
