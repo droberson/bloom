@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
+#include <sys/stat.h>
 
 #include "mmh3.h"
 #include "countingbloom.h"
@@ -220,10 +222,83 @@ void countingbloom_remove_string(countingbloomfilter cbf, const char *element) {
 	countingbloom_remove(cbf, (uint8_t *)element, strlen(element));
 }
 
-/* TODO
+/* countingbloom_save() -- save a counting bloom filter to disk
+ *
+ * Format of these files on disk:
+ *    +------------------------------+
+ *    | counting bloom filter struct |
+ *    +------------------------------+
+ *    |             data             |
+ *    +------------------------------+
+ *
+ * Args:
+ *     cbf  - filter to save
+ *     path - path to save filter
+ *
+ * Returns:
+ *     true on success, false on failure
+ *
+ * TODO: test this
+ */
 bool countingbloom_save(countingbloomfilter cbf, const char *path) {
+	FILE        *fp;
+	struct stat  sb;
+
+	fp = fopen(path, "wb");
+	if (fp == NULL) {
+		return false;
+	}
+
+	if (fwrite(&cbf, sizeof(countingbloomfilter), 1, fp) != 1 ||
+		fwrite(cbf.countermap, cbf.countermap_size, 1, fp) != 1) {
+		fclose(fp);
+		return false;
+	}
+
+	fclose(fp);
+	return true;
 }
 
+/* countingbloom_load() -- load a counting bloom filter from disk
+ *
+ * Args:
+ *     cbf  - counting bloom filter struct to populate
+ *     path - path on disk to counting bloom filter file
+ *
+ * Returns:
+ *     true on success, false on failure
+ */
 bool countingbloom_load(countingbloomfilter *cbf, const char *path) {
+	FILE        *fp;
+    struct stat  sb;
+
+	fp = fopen(path, "rb");
+	if (fp == NULL) {
+		return false;
+	}
+
+	if (fstat(fileno(fp), &sb) == -1) {
+		fclose(fp);
+		return false;
+	}
+
+	fread(cbf, sizeof(countingbloomfilter), 1, fp);
+
+	// basic sanity check. should fail if the file isn't valid
+	if (sizeof(countingbloomfilter) + cbf->size != sb.st_size) {
+		fclose(fp);
+		return false;
+	}
+
+	cbf->countermap = malloc(cbf->size);
+	if (cbf->countermap == NULL) {
+		fclose(fp);
+		return false;
+	}
+
+	fread(cbf->countermap, cbf->size, 1, fp);
+
+	fclose(fp);
+
+	return true;
 }
-*/
