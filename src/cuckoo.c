@@ -49,6 +49,14 @@ bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 		cf.buckets[index * cf.bucket_size + b].fingerprint = fingerprint;
 		fingerprint = evicted;
 		index = (index ^ fingerprint) % cf.num_buckets;
+
+		// re-insert into new bucket
+		for (size_t b = 0; b < cf.bucket_size; b++) {
+			if (cf.buckets[index * cf.bucket_size + b].fingerprint == 0) {
+				cf.buckets[index * cf.bucket_size + b].fingerprint = fingerprint;
+				return true;
+			}
+		}
 	}
 
 	return false; // max kicks reached; insertion failed.
