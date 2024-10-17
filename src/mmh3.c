@@ -63,16 +63,10 @@ uint32_t mmh3_32(const uint8_t *key, const size_t len, const uint32_t seed) {
 
 	// remainder
 	switch (len & 3) {
-	case 3:
-		k ^= (tail[2] << 16);
-	case 2:
-		k ^= (tail[1] << 8);
-	case 1:
-		k ^= tail[0];
-		k *= c1;
-		k = (k << r1) | (k >> (32 - r1));
-		k *= c2;
-		h ^= k;
+	case 3:	k ^= (tail[2] << 16);
+	case 2: k ^= (tail[1] << 8);
+	case 1:	k ^= tail[0];
+		    k *= c1; k = (k << r1) | (k >> (32 - r1)); k *= c2; h ^= k;
 	}
 
 	h ^= len;
@@ -112,10 +106,10 @@ uint32_t mmh3_32_string(const char *element, const uint32_t seed) {
  * TODO: compare with official implementations. unsure if algorithms match.
  */
 uint64_t mmh3_64(const void *key, const size_t len, uint64_t seed) {
-    const uint64_t c1 = 0x87c37b91114253d5ULL;
-    const uint64_t c2 = 0x4cf5ad432745937fULL;
-    const uint8_t *data = (const uint8_t *)key;
-    const size_t nblocks = len / 16;
+    const uint64_t  c1 = 0x87c37b91114253d5ULL;
+    const uint64_t  c2 = 0x4cf5ad432745937fULL;
+    const uint8_t  *data = (const uint8_t *)key;
+    const size_t     nblocks = len / 16;
 
     uint64_t h1 = seed;
     uint64_t h2 = seed;
@@ -195,6 +189,20 @@ uint64_t mmh3_64(const void *key, const size_t len, uint64_t seed) {
     return h1;
 }
 
+/* mmh3_64_string() -- calculate 64 bit mmh3 hash of a string.
+ *
+ * Args:
+ *     element - string to hash
+ *     seed    - seed value to use with mmh3
+ *
+ * Returns:
+ *     uint64_t containing calculated mmh3 hash
+ */
+uint64_t mmh3_64_string(const char *element, const uint64_t seed) {
+	return mmh3_64((uint8_t *)element, strlen((char *)element), seed);
+}
+
+
 /* mmh3_128() -- calculate 128 bit mmh3 hash.
  *
  * Args:
@@ -256,7 +264,8 @@ void mmh3_128(const void *key, const size_t len, const uint64_t seed, uint64_t *
     }
 
     // Finalization
-    h1 ^= len; h2 ^= len;
+    h1 ^= len;
+	h2 ^= len;
 
     h1 += h2;
     h2 += h1;
