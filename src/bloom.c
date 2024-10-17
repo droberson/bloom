@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "mmh3.h"
 #include "bloom.h"
@@ -193,11 +194,13 @@ bool bloom_save(bloomfilter bf, const char *path) {
 		return false;
 	}
 
-	fwrite(&bf, sizeof(bloomfilter), 1, fp);
-	fwrite(bf.bitmap, bf.bitmap_size, 1, fp);
+	if (fwrite(&bf, sizeof(bloomfilter), 1, fp) != 1 ||
+		fwrite(bf.bitmap, bf.bitmap_size, 1, fp) != 1) {
+		fclose(fp);
+		return false;
+	}
 
 	fclose(fp);
-
 	return true;
 }
 
@@ -211,14 +214,27 @@ bool bloom_save(bloomfilter bf, const char *path) {
  *     true on success, false on failure
  */
 bool bloom_load(bloomfilter *bf, const char *path) {
-	FILE *fp;
+	FILE        *fp;
+	struct stat  sb;
 
 	fp = fopen(path, "rb");
 	if (fp == NULL) {
 		return false;
 	}
 
+	if (fstat(fileno(fp), &sb) == -1) {
+		fclose(fp);
+		return false;
+	}
+
 	fread(bf, sizeof(bloomfilter), 1, fp);
+
+	// basic sanity check. should fail if filter isn't valid
+	if (ceil(bf->size / 8) != bf->bitmap_size ||
+		sizeof(bloomfilter) + bf->bitmap_size != sb.st_size) {
+		fclose(fp);
+		return false;
+	}
 
 	bf->bitmap = malloc(bf->bitmap_size);
 	if (bf->bitmap == NULL) {

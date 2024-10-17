@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <sys/stat.h>
 
 #include "timedecay.h"
 #include "mmh3.h"
@@ -244,14 +245,27 @@ bool timedecay_save(timedecay tf, const char *path) {
  * TODO: test timedecay_save()
  */
 bool timedecay_load(timedecay *tf, const char *path) {
-	FILE *fp;
+	FILE        *fp;
+	struct stat  sb;
 
 	fp = fopen(path, "rb");
 	if (fp == NULL) {
 		return false;
 	}
 
+	if (fstat(fileno(fp), &sb) == -1) {
+		fclose(fp);
+		return false;
+	}
+
 	fread(tf, sizeof(timedecay), 1, fp);
+
+	// basic sanity checks. should fail if file is not a filter
+	if (tf->filter_size != (tf->size * tf->bytes) ||
+		(sizeof(timedecay) + tf->filter_size) != sb.st_size) {
+		fclose(fp);
+		return false;
+	}
 
 	tf->filter = malloc(tf->filter_size);
 	if (tf->filter == NULL) {
