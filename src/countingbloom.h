@@ -1,5 +1,4 @@
 /* countingbloom.h
- * TODO: 16, 32 bit counters? unsure if this would be useful
  */
 #ifndef COUNTINGBLOOM_H
 #define COUNTINGBLOOM_H
