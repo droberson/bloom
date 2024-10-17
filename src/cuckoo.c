@@ -16,7 +16,7 @@ static uint32_t seed_xorshift32() {
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 
-	seed = (uint32_t)(ts.tv_sec ^ (ts.tv_nsec & 0xffffffff));
+	seed = (uint32_t)(ts.tv_sec ^ ts.tv_nsec);
 
 	return seed;
 }
@@ -53,8 +53,7 @@ bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 	uint32_t hash          = mmh3_32(key, len, 0);
 	uint16_t fingerprint   = (uint16_t)(hash & 0xffff); // lower 16 bits
 	size_t   i1            = hash % cf.num_buckets;
-	size_t   i2            = (hash >> 16) % cf.num_buckets; // upper 16 bits
-
+	size_t   i2            = (i1 ^ (fingerprint >> 1)) % cf.num_buckets;
 	size_t   i1_offset     = i1 * cf.bucket_size;
 	size_t   i2_offset     = i2 * cf.bucket_size;
 
@@ -70,6 +69,7 @@ bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 	}
 
 	// Eviction
+	// TODO track evictions somehow
 	size_t index        = (xorshift32(&cf.prng_state) % 2) ? i1 : i2;
 	size_t index_offset = index * cf.bucket_size;
 
@@ -98,13 +98,13 @@ bool cuckoo_add_string(cuckoofilter cf, char *key) {
 }
 
 bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
-	uint32_t hash = mmh3_32(key, len, 0);
+	uint32_t hash        = mmh3_32(key, len, 0);
 	uint16_t fingerprint = (uint16_t)(hash & 0xffff);
-	size_t i1 = hash % cf.num_buckets;
-	size_t i2 = (hash >> 16) % cf.num_buckets;
+	size_t   i1          = hash % cf.num_buckets;
+	size_t   i2          = (i1 ^ (fingerprint >> 1)) % cf.num_buckets;
 
-	size_t i1_offset = i1 * cf.bucket_size;
-	size_t i2_offset = i2 * cf.bucket_size;
+	size_t i1_offset     = i1 * cf.bucket_size;
+	size_t i2_offset     = i2 * cf.bucket_size;
 
 	for (size_t b = 0; b < cf.bucket_size; b++) {
 		if (cf.buckets[i1_offset + b].fingerprint == fingerprint ||
@@ -124,10 +124,10 @@ bool cuckoo_remove(cuckoofilter cf, void *key, size_t len) {
 	uint32_t hash        = mmh3_32(key, len, 0);
 	uint16_t fingerprint = (uint16_t)(hash & 0xffff);
 	size_t   i1          = hash % cf.num_buckets;
-	size_t   i2          = (hash >> 16) % cf.num_buckets;
+	size_t   i2          = (i1 ^ (fingerprint >> 1)) % cf.num_buckets;
 
-	size_t   i1_offset = i1 * cf.bucket_size;
-	size_t   i2_offset = i2 * cf.bucket_size;
+	size_t   i1_offset   = i1 * cf.bucket_size;
+	size_t   i2_offset   = i2 * cf.bucket_size;
 
 	for (size_t b = 0; b < cf.bucket_size; b++) {
 		if (cf.buckets[i1_offset + b].fingerprint == fingerprint) {
