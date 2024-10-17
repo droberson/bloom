@@ -169,18 +169,10 @@ bool timedecay_lookup(const timedecay tf, void *element, const size_t len) {
 
 		size_t value;
 		switch(tf.bytes) {
-		case 1:
-			value = ((uint8_t *)tf.filter)[result];
-			break;
-		case 2:
-			value = ((uint16_t *)tf.filter)[result];
-			break;
-		case 4:
-			value = ((uint32_t *)tf.filter)[result];
-			break;
-		case 8:
-			value = ((uint64_t *)tf.filter)[result];
-			break;
+		case 1:	value = ((uint8_t *)tf.filter)[result];	break;
+		case 2:	value = ((uint16_t *)tf.filter)[result]; break;
+		case 4:	value = ((uint32_t *)tf.filter)[result]; break;
+		case 8:	value = ((uint64_t *)tf.filter)[result]; break;
 		}
 
 		if (((ts - value) > tf.timeout) || (value == 0)) {
@@ -191,47 +183,20 @@ bool timedecay_lookup(const timedecay tf, void *element, const size_t len) {
 	return true;
 }
 
-// TODO add comment/documentation
+/* timedecay_lookup_string() -- helper function to handle string lookups
+ *
+ * Args:
+ *     tf      - filter to use
+ *     element - string element to lookup
+ *
+ * Returns:
+ *     true if element is likely in the filter
+ *     false if element is definitely not in the filter
+ */
 bool timedecay_lookup_string(const timedecay tf, const char *element) {
 	return timedecay_lookup(tf, (uint8_t *)element, strlen(element));
 }
 
-// TODO add comment/documentation
-bool timedecay_lookup_time(const timedecay tf, void *element, const size_t len, const size_t timeout) {
-	uint64_t    result;
-	uint64_t    hash[2];
-	time_t      now = get_monotonic_time();
-	size_t      ts = (now - tf.start_time) % tf.max_time;
-
-	if (ts > tf.max_time) { return false; }
-
-	for (int i = 0; i < tf.hashcount; i++) {
-		mmh3_128(element, len, i, hash);
-		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
-
-		size_t value;
-		switch(tf.bytes) {
-		case 1:
-			value = ((uint8_t *)tf.filter)[result];
-			break;
-		case 2:
-			value = ((uint16_t *)tf.filter)[result];
-			break;
-		case 4:
-			value = ((uint32_t *)tf.filter)[result];
-			break;
-		case 8:
-			value = ((uint64_t *)tf.filter)[result];
-			break;
-		}
-
-		if (((ts - value) > timeout) || (value == 0)) {
-			return false;
-		}
-	}
-
-	return true;
-}
 
 /* timedecay_save() -- save a time-decaying bloom filter to disk
  *
@@ -248,6 +213,8 @@ bool timedecay_lookup_time(const timedecay tf, void *element, const size_t len, 
  *
  * Returns:
  *      true on success, false on failure
+ *
+ * TODO: test timedecay_save()
  */
 bool timedecay_save(timedecay tf, const char *path) {
 	FILE *fp;
@@ -273,6 +240,8 @@ bool timedecay_save(timedecay tf, const char *path) {
  *
  * Returns:
  *     true on success, false on failure
+ *
+ * TODO: test timedecay_save()
  */
 bool timedecay_load(timedecay *tf, const char *path) {
 	FILE *fp;
