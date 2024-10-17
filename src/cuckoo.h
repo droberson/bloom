@@ -22,13 +22,15 @@ typedef struct {
 } cuckoofilter;
 
 /* function definitions
- * TODO cuckoo_add_string, cuckoo_lookup_string, cuckoo_remove_string
  */
 bool cuckoo_init(cuckoofilter *, size_t, size_t, size_t);
 void cuckoo_destroy(cuckoofilter);
 bool cuckoo_add(cuckoofilter, void *, size_t);
+bool cuckoo_add_string(cuckoofilter, char *);
 bool cuckoo_lookup(cuckoofilter, void *, size_t);
+bool cuckoo_lookup_string(cuckoofilter, char *);
 bool cuckoo_remove(cuckoofilter, void *, size_t);
+bool cuckoo_remove_string(cuckoofilter, char *);
 bool cuckoo_save(cuckoofilter, const char *);
 bool cuckoo_load(cuckoofilter *, const char *);
 

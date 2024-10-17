@@ -58,6 +58,10 @@ bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 	return false; // max kicks reached; insertion failed.
 }
 
+bool cuckoo_add_string(cuckoofilter cf, char *key) {
+	return cuckoo_add(cf, (uint8_t *)key, strlen(key));
+}
+
 
 bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
 	uint64_t hash = mmh3_64(key, len, 0);
@@ -74,6 +78,9 @@ bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
 	return false;
 }
 
+bool cuckoo_lookup_string(cuckoofilter cf, char *key) {
+	return cuckoo_lookup(cf, (uint8_t *)key, strlen(key));
+}
 
 bool cuckoo_remove(cuckoofilter cf, void *key, size_t len) {
 	uint64_t hash = mmh3_64(key, len, 0);
@@ -92,6 +99,10 @@ bool cuckoo_remove(cuckoofilter cf, void *key, size_t len) {
 	}
 
 	return false; // probably not in cuckoo filter; remove failed.
+}
+
+bool cuckoo_remove_string(cuckoofilter cf, char *key) {
+	return cuckoo_remove(cf, (uint8_t *)key, strlen(key));
 }
 
 /* TODO
