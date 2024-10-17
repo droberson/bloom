@@ -9,22 +9,16 @@
 #include "cuckoo.h"
 #include "mmh3.h"
 
-bool cuckoo_init(cuckoofilter *cf, size_t num_buckets, size_t bucket_size,
-				 size_t max_kicks) {
-	cf->num_buckets = num_buckets;
-	cf->bucket_size = bucket_size;
-	cf->max_kicks   = max_kicks;
-	cf->prng_state  = (uint32_t)time(NULL);
-	cf->buckets     = (cuckoobucket *)calloc(num_buckets * bucket_size, sizeof(cuckoobucket));
-	if (cf->buckets == NULL) {
-		return false;
-	}
 
-	return true;
-}
+static uint32_t seed_xorshift32() {
+	uint32_t        seed;
+	struct timespec ts;
 
-void cuckoo_destroy(cuckoofilter cf) {
-	free(cf.buckets);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	seed = (uint32_t)(ts.tv_sec ^ (ts.tv_nsec & 0xffffffff));
+
+	return seed;
 }
 
 static uint32_t xorshift32(uint32_t *state) {
@@ -35,6 +29,24 @@ static uint32_t xorshift32(uint32_t *state) {
 	*state = x;
 
 	return x;
+}
+
+bool cuckoo_init(cuckoofilter *cf, size_t num_buckets, size_t bucket_size,
+				 size_t max_kicks) {
+	cf->num_buckets = num_buckets;
+	cf->bucket_size = bucket_size;
+	cf->max_kicks   = max_kicks;
+	cf->prng_state  = seed_xorshift32();
+	cf->buckets     = (cuckoobucket *)calloc(num_buckets * bucket_size, sizeof(cuckoobucket));
+	if (cf->buckets == NULL) {
+		return false;
+	}
+
+	return true;
+}
+
+void cuckoo_destroy(cuckoofilter cf) {
+	free(cf.buckets);
 }
 
 bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
