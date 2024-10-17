@@ -122,18 +122,10 @@ void timedecay_add(timedecay *tf, void *element, const size_t len) {
 		mmh3_128(element, len, i, hash);
 		result = ((hash[0] % tf->size) + (hash[1] % tf->size)) % tf->size;
 		switch(tf->bytes) {
-		case 1:
-			((uint8_t *)tf->filter)[result] = ts;
-			break;
-		case 2:
-			((uint16_t *)tf->filter)[result] = ts;
-			break;
-		case 4:
-			((uint32_t *)tf->filter)[result] = ts;
-			break;
-		case 8:
-			((uint64_t *)tf->filter)[result] = ts;
-			break;
+		case 1:	((uint8_t *)tf->filter)[result] = ts; break;
+		case 2:	((uint16_t *)tf->filter)[result] = ts; break;
+		case 4:	((uint32_t *)tf->filter)[result] = ts; break;
+		case 8: ((uint64_t *)tf->filter)[result] = ts; break;
 		}
 	}
 }
