@@ -6,7 +6,6 @@
 #include <stddef.h>
 
 /* function definitions
- * TODO: mmh3_64_string()
  */
 uint32_t mmh3_32(const uint8_t *, const size_t, const uint32_t);
 uint32_t mmh3_32_string(const char *, const uint32_t);
