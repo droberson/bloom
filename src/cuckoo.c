@@ -9,9 +9,7 @@
 
 // TODO ideal size calculator
 
-bool cuckoo_init(cuckoofilter *cf,
-				 size_t num_buckets,
-				 size_t bucket_size,
+bool cuckoo_init(cuckoofilter *cf, size_t num_buckets, size_t bucket_size,
 				 size_t max_kicks) {
 	cf->num_buckets = num_buckets;
 	cf->bucket_size = bucket_size;
@@ -28,7 +26,6 @@ bool cuckoo_init(cuckoofilter *cf,
 void cuckoo_destroy(cuckoofilter cf) {
 	free(cf.buckets);
 }
-
 
 bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 	uint64_t hash = mmh3_64(key, len, 0);
@@ -61,7 +58,6 @@ bool cuckoo_add(cuckoofilter cf, void *key, size_t len) {
 bool cuckoo_add_string(cuckoofilter cf, char *key) {
 	return cuckoo_add(cf, (uint8_t *)key, strlen(key));
 }
-
 
 bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
 	uint64_t hash = mmh3_64(key, len, 0);
