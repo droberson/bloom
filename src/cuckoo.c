@@ -122,8 +122,8 @@ bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
 	size_t   i1          = hash % cf.num_buckets;
 	size_t   i2          = (i1 ^ (fingerprint >> 1)) % cf.num_buckets;
 
-	size_t i1_offset     = i1 * cf.bucket_size;
-	size_t i2_offset     = i2 * cf.bucket_size;
+	size_t   i1_offset   = i1 * cf.bucket_size;
+	size_t   i2_offset   = i2 * cf.bucket_size;
 
 	for (size_t b = 0; b < cf.bucket_size; b++) {
 		if (cf.buckets[i1_offset + b].fingerprint == fingerprint ||
