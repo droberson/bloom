@@ -26,4 +26,5 @@ void gaussiannb_destroy(gaussiannb);
 void gaussiannb_train(gaussiannb *, double **, int *, size_t);
 int  gaussiannb_predict(gaussiannb *, double *);
 double gaussiannb_mahalanobis_distance(gaussiannb *, double *, size_t);
+
 #endif /* GAUSSIANNB_H */
