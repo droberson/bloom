@@ -50,11 +50,18 @@ int main() {
 	cuckoo_add_string(cf, "beep");
 	cuckoo_add_string(cf, "boop");
 
+	printf("saving old filter to /tmp/cuckoo\n");
 	cuckoo_save(cf, "/tmp/cuckoo");
 
 	cuckoofilter newcf;
 
-	cuckoo_load(&newcf, "/tmp/cuckoo");
+	printf("loading /tmp/cuckoo into newcf\n");
+	result = cuckoo_load(&newcf, "/tmp/cuckoo");
+	if (result != true) {
+		fprintf(stderr, "failed to load /tmp/cuckoo\n");
+		return EXIT_FAILURE;
+	}
+	cuckoo_save(newcf, "/tmp/cuckoo_newcf");
 
 	result = cuckoo_lookup_string(newcf, "beep");
 	printf("beep: %d\n", result);
@@ -78,6 +85,8 @@ int main() {
 	}
 
 	remove("/tmp/cuckoo");
+	remove("/tmp/cuckoo_newcf");
+
 	cuckoo_destroy(newcf);
 	cuckoo_destroy(cf);
 

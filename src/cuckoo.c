@@ -1,4 +1,8 @@
 /* cuckoo.c
+ *
+ * TODO: counting cuckoo filter
+ * TODO: time-decaying cuckoo filter
+ * TODO: function documentation
  */
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +15,8 @@
 #include "mmh3.h"
 
 
+// TODO: move to .c/.h so xorshift32 can be used elsewhere
+// TODO: xorshift64
 static uint32_t seed_xorshift32() {
 	uint32_t        seed;
 	struct timespec ts;
@@ -117,6 +123,9 @@ bool cuckoo_add_string(cuckoofilter cf, char *key) {
 }
 
 bool cuckoo_lookup(cuckoofilter cf, void *key, size_t len) {
+	if (cf.buckets == NULL) { // filter not initialized
+		return false;
+	}
 	uint32_t hash        = mmh3_32(key, len, 0);
 	uint16_t fingerprint = (uint16_t)(hash & 0xffff);
 	size_t   i1          = hash % cf.num_buckets;
@@ -226,10 +235,27 @@ bool cuckoo_load(cuckoofilter *cf, const char *path) {
 	}
 
 	// read file header
-	if (fread(cf, sizeof(cuckoofilter), 1, fp) != 1) {
+	//if (fread(&cf->num_buckets, sizeof(size_t), 1, fp) != 1 ||
+	//	fread(&cf->bucket_size, sizeof(size_t), 1, fp) != 1 ||
+	//	fread(&cf->max_kicks, sizeof(size_t), 1, fp) != 1 ||
+	//	fread(&cf->prng_state, sizeof(uint32_t), 1, fp) != 1 ||
+	//	fread(&cf->total_insertions, sizeof(size_t), 1, fp) != 1 ||
+	//	fread(&cf->evictions, sizeof(size_t), 1, fp) != 1) {
+	//	fclose(fp);
+	//	return false;
+	//}
+	cuckoofilter cfb;
+	if (fread(&cfb, sizeof(cuckoofilter), 1, fp) != 1) {
 		fclose(fp);
 		return false;
 	}
+
+	cf->num_buckets      = cfb.num_buckets;
+	cf->bucket_size      = cfb.bucket_size;
+	cf->max_kicks        = cfb.max_kicks;
+	cf->total_insertions = cfb.total_insertions;
+	cf->evictions        = cfb.evictions;
+	cf->prng_state       = cfb.prng_state;
 
 	// sanity checks
 	if (fstat(fileno(fp), &sb) != 0) {
@@ -237,21 +263,34 @@ bool cuckoo_load(cuckoofilter *cf, const char *path) {
 		return false;
 	}
 
-	if (sizeof(cuckoofilter) + (cf->num_buckets * cf->bucket_size * sizeof(cuckoobucket)) != sb.st_size) {
+	size_t expected_filesize =  sizeof(cuckoofilter) +
+		   (cf->num_buckets * cf->bucket_size * sizeof(cuckoobucket)) +
+		   (cf->num_buckets * sizeof(size_t));
+	if (expected_filesize != sb.st_size) {
 		fclose(fp);
 		return false;
 	}
 
 	// re-populate bucket data
-	cf->buckets = (cuckoobucket *)calloc(cf->num_buckets * cf->bucket_size, sizeof(cuckoobucket));
+	cfb.buckets = (cuckoobucket *)calloc(cf->num_buckets * cf->bucket_size, sizeof(cuckoobucket));
 	if (cf->buckets == NULL) {
 		fclose(fp);
 		return false;
 	}
+	cf->buckets = cfb.buckets;
+
+	cfb.bucket_insertions = (size_t *)calloc(cf->num_buckets, sizeof(size_t));
+	if (cf->bucket_insertions == NULL) {
+		free(cf->buckets);
+		fclose(fp);
+		return false;
+	}
+	cf->bucket_insertions = cfb.bucket_insertions;
 
 	if (fread(cf->buckets, sizeof(cuckoobucket), cf->num_buckets * cf->bucket_size, fp) != (cf->num_buckets * cf->bucket_size) ||
 		fread(cf->bucket_insertions, sizeof(size_t), cf->num_buckets, fp) != cf->num_buckets) {
 		free(cf->buckets);
+		free(cf->bucket_insertions);
 		fclose(fp);
 		return false;
 	}
