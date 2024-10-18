@@ -13,22 +13,23 @@ set(SRC_FILES
     src/countingbloom.c
     src/timedecay.c
     src/cuckoo.c
+    src/gaussiannb.c
 )
 
 # Create a static library (.a)
-#add_library(bloom_static STATIC ${SRC_FILES})
-#set_target_properties(bloom_static PROPERTIES OUTPUT_NAME "bloom-static")
+add_library(bloom_static STATIC ${SRC_FILES})
+set_target_properties(bloom_static PROPERTIES OUTPUT_NAME "bloom-static")
 
 # Create a shared library (.so)
 add_library(bloom_shared SHARED ${SRC_FILES})
 set_target_properties(bloom_shared PROPERTIES OUTPUT_NAME "bloom")
 
 # Include directories for the library headers
-#target_include_directories(bloom_static PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(bloom_static PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_include_directories(bloom_shared PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
 # Link against the math library for both shared and static versions
-#target_link_libraries(bloom_static PUBLIC m)
+target_link_libraries(bloom_static PUBLIC m)
 target_link_libraries(bloom_shared PUBLIC m)
 
 # Optionally add an example/test program
@@ -36,12 +37,14 @@ add_executable(test_bloom_basic tests/test_bloom_basic.c)
 add_executable(test_timedecay_basic tests/test_timedecay_basic.c)
 add_executable(test_countingbloom_basic tests/test_countingbloom_basic.c)
 add_executable(test_cuckoo_basic tests/test_cuckoo_basic.c)
+add_executable(test_gaussiannb_basic tests/test_gaussiannb_basic.c)
 
 # Link the example program with the shared library
 target_link_libraries(test_bloom_basic PRIVATE bloom_shared)
 target_link_libraries(test_timedecay_basic PRIVATE bloom_shared)
 target_link_libraries(test_countingbloom_basic PRIVATE bloom_shared)
 target_link_libraries(test_cuckoo_basic PRIVATE bloom_shared)
+target_link_libraries(test_gaussiannb_basic PRIVATE bloom_shared)
 
 # Install rules
 install(TARGETS bloom_shared # bloom_static
@@ -53,6 +56,7 @@ install(FILES
     src/timedecay.h
     src/countingbloom.h
     src/cuckoo.h
+    src/gaussiannb.h
     DESTINATION include/bloom)
 install(CODE "execute_process(COMMAND ldconfig)")
 
@@ -62,3 +66,4 @@ add_test(NAME bloom COMMAND bin/test_bloom_basic)
 add_test(NAME timedecay COMMAND bin/test_timedecay_basic)
 add_test(NAME countingbloom COMMAND bin/test_countingbloom_basic)
 add_test(NAME cuckoo COMMAND bin/test_cuckoo_basic)
+add_test(NAME gaussiannb COMMAND bin/test_gaussiannb_basic)
