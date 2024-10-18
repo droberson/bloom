@@ -45,5 +45,41 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
+	// test file save/load
+	printf("testing saving/loading\n");
+	cuckoo_add_string(cf, "beep");
+	cuckoo_add_string(cf, "boop");
+
+	cuckoo_save(cf, "/tmp/cuckoo");
+
+	cuckoofilter newcf;
+
+	cuckoo_load(&newcf, "/tmp/cuckoo");
+
+	result = cuckoo_lookup_string(newcf, "beep");
+	printf("beep: %d\n", result);
+	if (result != true) {
+		fprintf(stderr, "FATAL: \"beep\" should be in filter\n");
+		return EXIT_FAILURE;
+	}
+
+	result = cuckoo_lookup(newcf, "boop", strlen("boop"));
+	printf("boop: %d\n", result);
+	if (result != true) {
+		fprintf(stderr, "FATAL: \"boop\" should be in filter\n");
+		return EXIT_FAILURE;
+	}
+
+	result = cuckoo_lookup_string(newcf, "doot");
+	printf("doot: %d\n", result);
+	if (result != false) {
+		fprintf(stderr, "FATAL: \"doot\" should be in filter\n");
+		return EXIT_FAILURE;
+	}
+
+	remove("/tmp/cuckoo");
+	cuckoo_destroy(newcf);
+	cuckoo_destroy(cf);
+
 	return EXIT_SUCCESS;
 }

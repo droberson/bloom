@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "cuckoo.h"
 #include "mmh3.h"
@@ -184,7 +185,77 @@ double cuckoo_load_factor(cuckoofilter cf) {
 	return ((double)cf.total_insertions / (double)capacity) * 100.0;
 }
 
-/* TODO
-bool cuckoo_save(cuckoofilter cf, const char *path);
-bool cuckoo_load(cuckoofilter *cf, const char *path);
-*/
+
+bool cuckoo_save(cuckoofilter cf, const char *path) {
+	FILE *fp;
+
+	fp = fopen(path, "wb");
+	if (fp == NULL) {
+		return false;
+	}
+
+	// Write cuckoofilter struct as the file's header
+	// TODO this may cause issues on systems with different datatypes
+	//      endianness, or compilers that add padding to structs. this
+	//      needs to be revisited at some point and tested on different
+	//      systems. this should also be checked on other data strucures
+	//      _save and _load functions.
+	if (fwrite(&cf, sizeof(cuckoofilter), 1, fp) != 1) {
+		fclose(fp);
+		return false;
+	}
+
+	// save buckets and bucket_insertions
+	if (fwrite(cf.buckets, sizeof(cuckoobucket), cf.num_buckets * cf.bucket_size, fp) != (cf.num_buckets * cf.bucket_size) ||
+		fwrite(cf.bucket_insertions, sizeof(size_t), cf.num_buckets, fp) != cf.num_buckets) {
+		fclose(fp);
+		return false;
+	}
+
+	fclose(fp);
+	return true;
+}
+
+bool cuckoo_load(cuckoofilter *cf, const char *path) {
+	FILE        *fp;
+	struct stat  sb;
+
+	fp = fopen(path, "rb");
+	if (fp == NULL) {
+		return false;
+	}
+
+	// read file header
+	if (fread(cf, sizeof(cuckoofilter), 1, fp) != 1) {
+		fclose(fp);
+		return false;
+	}
+
+	// sanity checks
+	if (fstat(fileno(fp), &sb) != 0) {
+		fclose(fp);
+		return false;
+	}
+
+	if (sizeof(cuckoofilter) + (cf->num_buckets * cf->bucket_size * sizeof(cuckoobucket)) != sb.st_size) {
+		fclose(fp);
+		return false;
+	}
+
+	// re-populate bucket data
+	cf->buckets = (cuckoobucket *)calloc(cf->num_buckets * cf->bucket_size, sizeof(cuckoobucket));
+	if (cf->buckets == NULL) {
+		fclose(fp);
+		return false;
+	}
+
+	if (fread(cf->buckets, sizeof(cuckoobucket), cf->num_buckets * cf->bucket_size, fp) != (cf->num_buckets * cf->bucket_size) ||
+		fread(cf->bucket_insertions, sizeof(size_t), cf->num_buckets, fp) != cf->num_buckets) {
+		free(cf->buckets);
+		fclose(fp);
+		return false;
+	}
+
+	fclose(fp);
+	return true;
+}
