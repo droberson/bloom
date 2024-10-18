@@ -17,9 +17,12 @@ typedef struct {
 typedef struct {
 	cuckoobucket *buckets;
 	size_t        num_buckets;
-	size_t        bucket_size; // 2, 4, or 8
+	size_t        bucket_size;       /* 2, 4, or 8 */
 	size_t        max_kicks;
-	uint32_t      prng_state;  /* xorshift state */
+	size_t        total_insertions;  /* insertion counter */
+	size_t       *bucket_insertions; /* insertion counters per bucket */
+	size_t        evictions;         /* eviction counter */
+	uint32_t      prng_state;        /* xorshift state */
 } cuckoofilter;
 
 /* function definitions
