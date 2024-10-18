@@ -179,6 +179,11 @@ bool cuckoo_remove_string(cuckoofilter cf, char *key) {
 	return cuckoo_remove(cf, key, strlen(key));
 }
 
+double cuckoo_load_factor(cuckoofilter cf) {
+	size_t capacity = cf.num_buckets * cf.bucket_size;
+	return ((double)cf.total_insertions / (double)capacity) * 100.0;
+}
+
 /* TODO
 bool cuckoo_save(cuckoofilter cf, const char *path);
 bool cuckoo_load(cuckoofilter *cf, const char *path);
