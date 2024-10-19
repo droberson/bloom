@@ -5,7 +5,8 @@
 
 #include <stdbool.h>
 
-#define EPSILON 1e-9 // avoid division by zero
+#define GNB_EPSILON 1e-9 // avoid division by zero
+#define GNB_ALPHA   1e-2 // for regularization
 
 /* structures
  */
