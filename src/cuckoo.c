@@ -234,17 +234,8 @@ bool cuckoo_load(cuckoofilter *cf, const char *path) {
 		return false;
 	}
 
-	// read file header
-	//if (fread(&cf->num_buckets, sizeof(size_t), 1, fp) != 1 ||
-	//	fread(&cf->bucket_size, sizeof(size_t), 1, fp) != 1 ||
-	//	fread(&cf->max_kicks, sizeof(size_t), 1, fp) != 1 ||
-	//	fread(&cf->prng_state, sizeof(uint32_t), 1, fp) != 1 ||
-	//	fread(&cf->total_insertions, sizeof(size_t), 1, fp) != 1 ||
-	//	fread(&cf->evictions, sizeof(size_t), 1, fp) != 1) {
-	//	fclose(fp);
-	//	return false;
-	//}
 	cuckoofilter cfb;
+	// read file header
 	if (fread(&cfb, sizeof(cuckoofilter), 1, fp) != 1) {
 		fclose(fp);
 		return false;
