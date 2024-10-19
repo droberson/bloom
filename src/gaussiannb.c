@@ -75,8 +75,12 @@ void gaussiannb_train(gaussiannb *gnb, double **X, int *y, size_t num_samples) {
 		}
 
 		for (size_t j = 0; j < gnb->num_features; j++) {
-			// regularization to avoid overfitting
-			gnb->classes[c].variance[j] = (gnb->classes[c].variance[j] /count) + GNB_ALPHA;
+			if (count == 0) {
+				gnb->classes[c].variance[j] = GNB_EPSILON;
+			} else {
+				// regularization to avoid overfitting
+				gnb->classes[c].variance[j] = (gnb->classes[c].variance[j] / count) + GNB_ALPHA;
+			}
 		}
 
 		// laplace smoothing using class weight
@@ -93,7 +97,7 @@ int gaussiannb_predict(gaussiannb *gnb, double *X) {
 
 		// calculate log(probabilities) of features
 		for (size_t j = 0; j < gnb->num_features; j++) {
-			double mean = gnb->classes[c].mean[j] + GNB_EPSILON;
+			double mean = gnb->classes[c].mean[j];
 			double var  = gnb->classes[c].variance[j] + GNB_EPSILON;
 			double prob = (1 / sqrt(2 * M_PI * var)) * exp(-pow(X[j] - mean, 2) / (2 * var));
 			log_prob += log(prob);
