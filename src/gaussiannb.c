@@ -34,12 +34,6 @@ void gaussiannb_destroy(gaussiannb gnb) {
 	free(gnb.classes);
 }
 
-static void handle_nan(double *value, double mean) {
-	if (isnan(*value)) {
-		*value = mean;
-	}
-}
-
 static void calculate_class_mean(gaussiannbclass *cls, double **X, int *y, size_t num_samples, size_t num_features, int class_label) {
 	size_t count = 0;
 
@@ -48,7 +42,9 @@ static void calculate_class_mean(gaussiannbclass *cls, double **X, int *y, size_
 		if (y[si] == class_label) {
 			count++;
 			for (size_t fi = 0; fi < num_features; fi++) {
-				handle_nan(&X[si][fi], cls->mean[fi]);
+				if (isnan(X[si][fi])) {
+					X[si][fi] = cls->mean[fi];
+				}
 				cls->mean[fi] += X[si][fi];
 			}
 		}
