@@ -123,7 +123,7 @@ double gaussiannb_mahalanobis_distance(gaussiannb *gnb, double *X, size_t class_
 	return sqrt(distance);
 }
 
-void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
+void gaussiannb_update(gaussiannb *gnb, double *X, int y, bool new) {
 	// handle invalid input
 	if (X == NULL || gnb == NULL || y >= gnb->num_classes || y < 0) {
 		return;
@@ -136,10 +136,14 @@ void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
 		gnb->classes[y].variance[i] = (gnb->classes[y].count * old_variance + (X[i] - old_mean) * (X[i] - gnb->classes[y].mean[i])) / (gnb->classes[y].count + 1);
 	}
 
-	gnb->num_samples++;
+	// avoid double counting
+	if (new) {
+		gnb->num_samples++;
+	}
 
 	gnb->classes[y].count++;
-	gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
+	gnb->classes[y].prior = (double)gnb->classes[y].count / gnb->num_samples;
+	//gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
 }
 
 void gaussiannb_adjust_weight(gaussiannb *gnb, int class_index, double weight) {
