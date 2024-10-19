@@ -34,8 +34,8 @@ void gaussiannb_train(gaussiannb *gnb, double **X, int *y, size_t num_samples) {
 	double *variances = calloc(bufsiz, sizeof(double));
 
 	if (means == NULL || variances == NULL) {
-		free(means);
-		free(variances);
+		if (means != NULL) { free(means); }
+		if (variances != NULL) { free(variances); }
 		return;
 	}
 
@@ -115,6 +115,11 @@ double gaussiannb_mahalanobis_distance(gaussiannb *gnb, double *X, size_t class_
 }
 
 void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
+	// handle invalid input
+	if (X == NULL || gnb == NULL || y >= gnb->num_classes || y < 0) {
+		return;
+	}
+
 	for (size_t i = 0; i < gnb->num_features; i++) {
 		double old_mean = gnb->classes[y].mean[i];
 		gnb->classes[y].mean[i] += (X[i] - old_mean) / (gnb->classes[y].count + 1);
@@ -122,6 +127,7 @@ void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
 		gnb->classes[y].variance[i] = (gnb->classes[y].count * old_variance + (X[i] - old_mean) * (X[i] - gnb->classes[y].mean[i])) / (gnb->classes[y].count + 1);
 	}
 
+	gnb->classes[y].count++;
 	gnb->classes[y].count++;
 	gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
 }
