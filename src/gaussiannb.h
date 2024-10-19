@@ -14,8 +14,8 @@ typedef struct {
 } gaussiannbclass;
 
 typedef struct {
-	size_t num_classes;
-	size_t num_features;
+	size_t           num_classes;
+	size_t           num_features;
 	gaussiannbclass *classes;
 } gaussiannb;
 
