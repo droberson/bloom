@@ -133,7 +133,6 @@ void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
 	}
 
 	gnb->classes[y].count++;
-	gnb->classes[y].count++;
 	gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
 }
 
