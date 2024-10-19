@@ -132,6 +132,8 @@ void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
 		gnb->classes[y].variance[i] = (gnb->classes[y].count * old_variance + (X[i] - old_mean) * (X[i] - gnb->classes[y].mean[i])) / (gnb->classes[y].count + 1);
 	}
 
+	gnb->num_samples++;
+
 	gnb->classes[y].count++;
 	gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
 }
