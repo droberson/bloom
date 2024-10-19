@@ -69,22 +69,22 @@ void gaussiannb_train(gaussiannb *gnb, double **X, int *y, size_t num_samples) {
 			gnb->classes[c].variance[j] /= count;
 		}
 
-		gnb->classes[c].prior = (double)count / num_samples;
+		// laplace smoothing
+		gnb->classes[c].prior = (double)(count + 1) / (num_samples + gnb->num_classes);
 	}
 }
 
 int gaussiannb_predict(gaussiannb *gnb, double *X) {
 	double best_posterior = -INFINITY;
 	int    best_class     = -1;
-	double epsilon        = 1e-9; // avoid division by zero
 
 	for (size_t c = 0; c < gnb->num_classes; c++) {
 		double log_prob = log(gnb->classes[c].prior);
 
 		// calculate log(probabilities) of features
 		for (size_t j = 0; j < gnb->num_features; j++) {
-			double mean = gnb->classes[c].mean[j] + epsilon;
-			double var  = gnb->classes[c].variance[j];
+			double mean = gnb->classes[c].mean[j] + EPSILON;
+			double var  = gnb->classes[c].variance[j] + EPSILON;
 			double prob = (1 / sqrt(2 * M_PI * var)) * exp(-pow(X[j] - mean, 2) / (2 * var));
 			log_prob += log(prob);
 		}
@@ -103,7 +103,7 @@ double gaussiannb_mahalanobis_distance(gaussiannb *gnb, double *X, size_t class_
 
 	for (size_t i = 0; i < gnb->num_features; i++) {
 		double diff = X[i] - gnb->classes[class_index].mean[i];
-		distance += (diff * diff) / gnb->classes[class_index].variance[i];
+		distance += (diff * diff) / (gnb->classes[class_index].variance[i] + EPSILON);
 	}
 
 	return sqrt(distance);

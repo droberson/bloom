@@ -5,6 +5,8 @@
 
 #include <stdbool.h>
 
+#define EPSILON 1e-9 // avoid division by zero
+
 /* structures
  */
 typedef struct {
