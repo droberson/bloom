@@ -1,5 +1,6 @@
 /* gaussiannb.c
  * TODO: save/load models
+ * TODO: multi-threaded log calculations for gaussiannb_predict() ?
  */
 #include <stdlib.h>
 #include <stdbool.h>
