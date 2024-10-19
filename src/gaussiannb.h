@@ -14,6 +14,7 @@ typedef struct {
 	double *mean;
 	double *variance;
 	double  prior;
+	double  weight;
 	size_t  count;
 } gaussiannbclass;
 
@@ -25,12 +26,14 @@ typedef struct {
 } gaussiannb;
 
 /* function definitions
+ * TODO: _update, _train, _adjust_weight, should return statuses
  */
 bool   gaussiannb_init(gaussiannb *, size_t, size_t);
 void   gaussiannb_destroy(gaussiannb);
 void   gaussiannb_train(gaussiannb *, double **, int *, size_t);
 void   gaussiannb_update(gaussiannb *, double *, int);
 int    gaussiannb_predict(gaussiannb *, double *);
+void   gaussiannb_adjust_weight(gaussiannb *, int, double);
 double gaussiannb_mahalanobis_distance(gaussiannb *, double *, size_t);
 
 #endif /* GAUSSIANNB_H */

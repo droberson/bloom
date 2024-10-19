@@ -16,6 +16,11 @@ bool gaussiannb_init(gaussiannb *gnb, size_t num_classes, size_t num_features) {
 		return false;
 	}
 
+	// initialize class weights to 1.0
+	for (size_t c = 0; c < num_classes; c++) {
+		gnb->classes[c].weight = 1.0;
+	}
+
 	return true;
 }
 
@@ -74,8 +79,8 @@ void gaussiannb_train(gaussiannb *gnb, double **X, int *y, size_t num_samples) {
 			gnb->classes[c].variance[j] = (gnb->classes[c].variance[j] /count) + GNB_ALPHA;
 		}
 
-		// laplace smoothing
-		gnb->classes[c].prior = (double)(count + 1) / (num_samples + gnb->num_classes);
+		// laplace smoothing using class weight
+		gnb->classes[c].prior = (double)(count + gnb->classes[c].weight) / (num_samples + gnb->num_classes);
 	}
 }
 
@@ -84,7 +89,7 @@ int gaussiannb_predict(gaussiannb *gnb, double *X) {
 	int    best_class     = -1;
 
 	for (size_t c = 0; c < gnb->num_classes; c++) {
-		double log_prob = log(gnb->classes[c].prior);
+		double log_prob = log(gnb->classes[c].prior * gnb->classes[c].weight);
 
 		// calculate log(probabilities) of features
 		for (size_t j = 0; j < gnb->num_features; j++) {
@@ -130,4 +135,11 @@ void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
 	gnb->classes[y].count++;
 	gnb->classes[y].count++;
 	gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
+}
+
+void gaussiannb_adjust_weight(gaussiannb *gnb, int class_index, double weight) {
+	if (class_index >= 0 && class_index < gnb->num_classes) {
+		gnb->classes[class_index].weight = weight;
+	}
+	// class_index out of range ...
 }
