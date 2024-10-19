@@ -26,11 +26,11 @@ typedef struct {
 
 /* function definitions
  */
-bool gaussiannb_init(gaussiannb *, size_t, size_t);
-void gaussiannb_destroy(gaussiannb);
-void gaussiannb_train(gaussiannb *, double **, int *, size_t);
-void gaussiannb_update(gaussiannb *, double *, int);
-int  gaussiannb_predict(gaussiannb *, double *);
+bool   gaussiannb_init(gaussiannb *, size_t, size_t);
+void   gaussiannb_destroy(gaussiannb);
+void   gaussiannb_train(gaussiannb *, double **, int *, size_t);
+void   gaussiannb_update(gaussiannb *, double *, int);
+int    gaussiannb_predict(gaussiannb *, double *);
 double gaussiannb_mahalanobis_distance(gaussiannb *, double *, size_t);
 
 #endif /* GAUSSIANNB_H */
