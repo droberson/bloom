@@ -9,6 +9,7 @@
 bool gaussiannb_init(gaussiannb *gnb, size_t num_classes, size_t num_features) {
 	gnb->num_classes  = num_classes;
 	gnb->num_features = num_features;
+	gnb->num_samples  = 0;
 	gnb->classes      = calloc(num_classes, sizeof(gaussiannbclass));
 
 	if (gnb->classes == NULL) {
@@ -38,10 +39,13 @@ void gaussiannb_train(gaussiannb *gnb, double **X, int *y, size_t num_samples) {
 		return;
 	}
 
+	gnb->num_samples += num_samples; // needed for online learning
+
 	for (size_t c = 0; c < gnb->num_classes; c++) {
-		gnb->classes[c].mean = means + (c * gnb->num_features);
+		gnb->classes[c].count    = 0;
+		gnb->classes[c].mean     = means + (c * gnb->num_features);
 		gnb->classes[c].variance = variances + (c * gnb->num_features);
-		size_t count = 0;
+		size_t count             = 0;
 
 		// calculate mean and variance of features
 		for (size_t i = 0; i < num_samples; i++) {
@@ -108,4 +112,16 @@ double gaussiannb_mahalanobis_distance(gaussiannb *gnb, double *X, size_t class_
 	}
 
 	return sqrt(distance);
+}
+
+void gaussiannb_update(gaussiannb *gnb, double *X, int y) {
+	for (size_t i = 0; i < gnb->num_features; i++) {
+		double old_mean = gnb->classes[y].mean[i];
+		gnb->classes[y].mean[i] += (X[i] - old_mean) / (gnb->classes[y].count + 1);
+		double old_variance = gnb->classes[y].variance[i];
+		gnb->classes[y].variance[i] = (gnb->classes[y].count * old_variance + (X[i] - old_mean) * (X[i] - gnb->classes[y].mean[i])) / (gnb->classes[y].count + 1);
+	}
+
+	gnb->classes[y].count++;
+	gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
 }

@@ -14,11 +14,13 @@ typedef struct {
 	double *mean;
 	double *variance;
 	double  prior;
+	size_t  count;
 } gaussiannbclass;
 
 typedef struct {
 	size_t           num_classes;
 	size_t           num_features;
+	size_t           num_samples;
 	gaussiannbclass *classes;
 } gaussiannb;
 
@@ -27,6 +29,7 @@ typedef struct {
 bool gaussiannb_init(gaussiannb *, size_t, size_t);
 void gaussiannb_destroy(gaussiannb);
 void gaussiannb_train(gaussiannb *, double **, int *, size_t);
+void gaussiannb_update(gaussiannb *, double *, int);
 int  gaussiannb_predict(gaussiannb *, double *);
 double gaussiannb_mahalanobis_distance(gaussiannb *, double *, size_t);
 
