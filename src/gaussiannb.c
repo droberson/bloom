@@ -67,7 +67,8 @@ static void calculate_class_variance(gaussiannbclass *cls, double **X, int *y, s
 	for (size_t si = 0; si < num_samples; si++) {
 		if (y[si] == class_label) {
 			for (size_t fi = 0; fi < num_features; fi++) {
-				cls->variance[fi] += pow(X[si][fi] - cls->mean[fi], 2);
+				double squared_deviation = (X[si][fi] - cls->mean[fi]) * (X[si][fi] - cls->mean[fi]);
+				cls->variance[fi] += squared_deviation;
 			}
 		}
 	}
@@ -131,7 +132,8 @@ int gaussiannb_predict(gaussiannb *gnb, double *X) {
 		for (size_t j = 0; j < gnb->num_features; j++) {
 			double mean = gnb->classes[c].mean[j];
 			double var  = gnb->classes[c].variance[j] + GNB_EPSILON;
-			double prob = GNB_NORMALIZING_CONSTANT * exp(-pow(X[j] - mean, 2) / (2 * var));
+			double diff = X[j] - mean;
+			double prob = GNB_NORMALIZING_CONSTANT * exp(-(diff * diff) / (2 * var));
 			log_prob += log(prob);
 		}
 
