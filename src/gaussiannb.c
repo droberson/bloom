@@ -1,4 +1,5 @@
 /* gaussiannb.c
+ * TODO: save/load models
  */
 #include <stdlib.h>
 #include <stdbool.h>
@@ -33,7 +34,55 @@ void gaussiannb_destroy(gaussiannb gnb) {
 	free(gnb.classes);
 }
 
+static void handle_nan(double *value, double mean) {
+	if (isnan(*value)) {
+		*value = mean;
+	}
+}
+
+static void calculate_class_mean(gaussiannbclass *cls, double **X, int *y, size_t num_samples, size_t num_features, int class_label) {
+	size_t count = 0;
+
+	// calculate mean and variance of features
+	for (size_t si = 0; si < num_samples; si++) {
+		if (y[si] == class_label) {
+			count++;
+			for (size_t fi = 0; fi < num_features; fi++) {
+				handle_nan(&X[si][fi], cls->mean[fi]);
+				cls->mean[fi] += X[si][fi];
+			}
+		}
+	}
+
+	if (count > 0) {
+		for (size_t fi = 0; fi < num_features; fi++) {
+			cls->mean[fi] /= count;
+		}
+	}
+
+	cls->count = count;
+}
+
+static void calculate_class_variance(gaussiannbclass *cls, double **X, int *y, size_t num_samples, size_t num_features, int class_label, size_t count) {
+	for (size_t si = 0; si < num_samples; si++) {
+		if (y[si] == class_label) {
+			for (size_t fi = 0; fi < num_features; fi++) {
+				cls->variance[fi] += pow(X[si][fi] - cls->mean[fi], 2);
+			}
+		}
+	}
+
+	// regularize and normalize variance
+	for (size_t fi = 0; fi < num_features; fi++) {
+		cls->variance[fi] = (count == 0) ? GNB_EPSILON : (cls->variance[fi] / count) + GNB_ALPHA;
+	}
+}
+
 void gaussiannb_train(gaussiannb *gnb, double **X, int *y, size_t num_samples) {
+	if (num_samples == 0) {
+		return;
+	}
+
 	size_t  bufsiz    = gnb->num_classes * gnb->num_features;
 	double *means     = calloc(bufsiz, sizeof(double));
 	double *variances = calloc(bufsiz, sizeof(double));
@@ -46,45 +95,28 @@ void gaussiannb_train(gaussiannb *gnb, double **X, int *y, size_t num_samples) {
 
 	gnb->num_samples += num_samples; // needed for online learning
 
-	for (size_t c = 0; c < gnb->num_classes; c++) {
-		gnb->classes[c].count    = 0;
-		gnb->classes[c].mean     = means + (c * gnb->num_features);
-		gnb->classes[c].variance = variances + (c * gnb->num_features);
-		size_t count             = 0;
+	for (size_t ci = 0; ci < gnb->num_classes; ci++) {
+		gnb->classes[ci].count    = 0;
+		gnb->classes[ci].mean     = means + (ci * gnb->num_features);
+		gnb->classes[ci].variance = variances + (ci * gnb->num_features);
 
-		// calculate mean and variance of features
-		for (size_t i = 0; i < num_samples; i++) {
-			if (y[i] == c) {
-				count++;
-				for (size_t j = 0; j < gnb->num_features; j++) {
-					gnb->classes[c].mean[j] += X[i][j];
-				}
-			}
-		}
+		calculate_class_mean(&gnb->classes[ci],
+							 X,
+							 y,
+							 num_samples,
+							 gnb->num_features,
+							 ci);
 
-		for (size_t j = 0; j < gnb->num_features; j++) {
-			gnb->classes[c].mean[j] /= count;
-		}
-
-		for (size_t i = 0; i < num_samples; i++) {
-			if (y[i] == c) {
-				for (size_t j = 0; j < gnb->num_features; j++) {
-					gnb->classes[c].variance[j] += pow(X[i][j] - gnb->classes[c].mean[j], 2);
-				}
-			}
-		}
-
-		for (size_t j = 0; j < gnb->num_features; j++) {
-			if (count == 0) {
-				gnb->classes[c].variance[j] = GNB_EPSILON;
-			} else {
-				// regularization to avoid overfitting
-				gnb->classes[c].variance[j] = (gnb->classes[c].variance[j] / count) + GNB_ALPHA;
-			}
-		}
+		calculate_class_variance(&gnb->classes[ci],
+								 X,
+								 y,
+								 num_samples,
+								 gnb->num_features,
+								 ci,
+								 gnb->classes[ci].count);
 
 		// laplace smoothing using class weight
-		gnb->classes[c].prior = (double)(count + gnb->classes[c].weight) / (num_samples + gnb->num_classes);
+		gnb->classes[ci].prior = (gnb->classes[ci].count + gnb->classes[ci].weight) / (num_samples + gnb->num_classes);
 	}
 }
 
@@ -93,13 +125,13 @@ int gaussiannb_predict(gaussiannb *gnb, double *X) {
 	int    best_class     = -1;
 
 	for (size_t c = 0; c < gnb->num_classes; c++) {
-		double log_prob = log(gnb->classes[c].prior * gnb->classes[c].weight);
+		double log_prob = log(gnb->classes[c].prior * gnb->classes[c].weight + GNB_EPSILON);
 
 		// calculate log(probabilities) of features
 		for (size_t j = 0; j < gnb->num_features; j++) {
 			double mean = gnb->classes[c].mean[j];
 			double var  = gnb->classes[c].variance[j] + GNB_EPSILON;
-			double prob = (1 / sqrt(2 * M_PI * var)) * exp(-pow(X[j] - mean, 2) / (2 * var));
+			double prob = GNB_NORMALIZING_CONSTANT * exp(-pow(X[j] - mean, 2) / (2 * var));
 			log_prob += log(prob);
 		}
 
@@ -143,12 +175,11 @@ void gaussiannb_update(gaussiannb *gnb, double *X, int y, bool new) {
 
 	gnb->classes[y].count++;
 	gnb->classes[y].prior = (double)gnb->classes[y].count / gnb->num_samples;
-	//gnb->classes[y].prior = (double)(gnb->classes[y].count + 1) / (gnb->num_samples + gnb->num_classes);
 }
 
-void gaussiannb_adjust_weight(gaussiannb *gnb, int class_index, double weight) {
-	if (class_index >= 0 && class_index < gnb->num_classes) {
-		gnb->classes[class_index].weight = weight;
+void gaussiannb_adjust_weight(gaussiannb *gnb, int ci, double weight) {
+	if (ci >= 0 && ci < gnb->num_classes) {
+		gnb->classes[ci].weight = weight;
 	}
 	// class_index out of range ...
 }

@@ -3,10 +3,12 @@
 #ifndef GAUSSIANNB_H
 #define GAUSSIANNB_H
 
+#include <math.h>
 #include <stdbool.h>
 
-#define GNB_EPSILON 1e-9 // avoid division by zero
-#define GNB_ALPHA   1e-2 // for regularization
+#define GNB_EPSILON               1e-9 // avoid division by zero
+#define GNB_ALPHA                 1e-2 // for regularization
+#define GNB_NORMALIZING_CONSTANT (1 / sqrt(2 * M_PI)) // normalizing constant
 
 /* structures
  */
