@@ -54,11 +54,11 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
 	case COUNTER_64BIT:
 		cbf->countermap_size = cbf->size * sizeof(uint64_t);
 		break;
-	default:
-		break;
+	default: // invalid counter size
+		return false;
 	}
 
-	cbf->countermap = calloc(cbf->size, cbf->countermap_size);
+	cbf->countermap = calloc(1, cbf->countermap_size);
 	if (cbf->countermap == NULL) {
 		return false;
 	}
