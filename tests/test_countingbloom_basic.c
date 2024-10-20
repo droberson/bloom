@@ -84,7 +84,7 @@ int main() {
 	printf("Testing saving and loading from disk\n");
 	result = countingbloom_save(cbf, "/tmp/countingbloom");
 	if (result != true) {
-		fprintf(stderr, "FAILURE: failed to save counting bloom filter file to /tmp/countingbloom\n");
+		fprintf(stderr, "FAILURE: failed to save 8 bit counting bloom filter file to /tmp/countingbloom\n");
 		return EXIT_FAILURE;
 	}
 
@@ -126,6 +126,7 @@ int main() {
 	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (cbf16.csize + 3)));
 	countingbloom_destroy(cbf16);
 
+	// 32 bit
 	result = countingbloom_init(&cbf32, 20, 0.01, COUNTER_32BIT);
 	if (result != true) {
 		fprintf(stderr, "FAILURE: creation of 32 bit counter\n");
@@ -136,8 +137,42 @@ int main() {
 	printf("\thash count: %d\n", cbf32.hashcount);
 	printf("\tcountermap size: %d\n", cbf32.countermap_size);
 	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (cbf32.csize + 3)));
-	countingbloom_destroy(cbf32);
 
+	countingbloom_add_string(cbf32, "the last metroid is in captivity");
+	countingbloom_add_string(cbf32, "the galaxy is at peace.");
+	countingbloom_add_string(cbf32, "blap");
+	countingbloom_add_string(cbf32, "blap");
+
+	result = countingbloom_lookup_string(cbf32, "the last metroid is in captivity");
+	if (result != true) {
+		fprintf(stderr, "FAILURE: \"the last metroid is in captivity\" should be in filter\n");
+		return EXIT_FAILURE;
+	}
+
+	result = countingbloom_save(cbf32, "/tmp/cbf32");
+	if (result != true) {
+		fprintf(stderr, "FAILURE: unable to save 32 bit counter to disk\n");
+		return EXIT_FAILURE;
+	}
+	countingbloom_destroy(cbf32);
+	result = countingbloom_load(&cbf32, "/tmp/cbf32");
+	if (result != true) {
+		fprintf(stderr, "FAILURE: unable to load 32 bit filter from disk\n");
+		return EXIT_FAILURE;
+	}
+	printf("32 bit loaded from disk:\n");
+	printf("\tsize: %d\n", cbf32.size);
+	printf("\thash count: %d\n", cbf32.hashcount);
+	printf("\tcountermap size: %d\n", cbf32.countermap_size);
+	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (cbf32.csize + 3)));
+
+	result = countingbloom_lookup_string(cbf32, "the last metroid is in captivity");
+	if (result != true) {
+		fprintf(stderr, "FAILURE: \"the last metroid is in captivity\" should be in filter\n");
+		return EXIT_FAILURE;
+	}
+
+	// 64 bit
 	result = countingbloom_init(&cbf64, 20, 0.01, COUNTER_64BIT);
 	if (result != true) {
 		fprintf(stderr, "FAILURE: creation of64 bit counter\n");
