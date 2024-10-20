@@ -62,6 +62,8 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
 	if (cbf->countermap == NULL) {
 		return false;
 	}
+
+	return true;
 }
 
 /* countingbloom_destroy() -- free memory allocated by countingbloom_init()
@@ -75,7 +77,6 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
 void countingbloom_destroy(countingbloomfilter cbf) {
 	free(cbf.countermap);
 }
-
 
 /* get_counter, inc_counter, dec_counter -- helper functions used to handle
  *     different sized counters.
@@ -323,8 +324,6 @@ void countingbloom_remove_string(countingbloomfilter cbf, const char *element) {
  *
  * Returns:
  *     true on success, false on failure
- *
- * TODO: test this
  */
 bool countingbloom_save(countingbloomfilter cbf, const char *path) {
 	FILE        *fp;

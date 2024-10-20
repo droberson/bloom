@@ -1,13 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "countingbloom.h"
 
 int main() {
 	countingbloomfilter cbf;
+	bool                result;
 
 	printf("initializing counting bloom filter expecting 20 elements\n");
-	countingbloom_init(&cbf, 20, 0.01, COUNTER_8BIT);
+	result = countingbloom_init(&cbf, 20, 0.01, COUNTER_8BIT);
+	if (result != true) {
+		fprintf(stderr, "FAILURE: failed creating 8 bit filter\n");
+		return EXIT_FAILURE;
+	}
+
+	printf("\tsize: %d\n", cbf.size);
+	printf("\thash count: %d\n", cbf.hashcount);
+	printf("\tcountermap size: %d\n", cbf.countermap_size);
+	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (cbf.csize + 3)));
 
 	// add some data
 	countingbloom_add_string(cbf, "foo");
@@ -16,7 +27,6 @@ int main() {
 	countingbloom_add_string(cbf, "multi");
 	countingbloom_add_string(cbf, "multi");
 
-	bool result;
 	result = countingbloom_lookup_string(cbf, "foo");
 	printf("cbf foo lookup: %d\n", result);
 	if (result != true) {
@@ -60,7 +70,7 @@ int main() {
 	result = countingbloom_lookup_string(cbf, "bar");
 	printf("cbf bar lookup: %d\n", result);
 	if (result != false) {
-		fprintf(stderr, "FAILURE: \"bar\" should not be in filter\n");
+		fprintf(stderr, "FAILURE: \"bar\" should NOT be in filter\n");
 		return EXIT_FAILURE;
 	}
 
@@ -71,8 +81,80 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
+	printf("Testing saving and loading from disk\n");
+	result = countingbloom_save(cbf, "/tmp/countingbloom");
+	if (result != true) {
+		fprintf(stderr, "FAILURE: failed to save counting bloom filter file to /tmp/countingbloom\n");
+		return EXIT_FAILURE;
+	}
+
+	countingbloomfilter newcbf;
+	countingbloom_load(&newcbf, "/tmp/countingbloom");
+	printf("\tsize: %d\n", newcbf.size);
+	printf("\thash count: %d\n", newcbf.hashcount);
+	printf("\tcountermap size: %d\n", newcbf.countermap_size);
+	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (newcbf.csize + 3)));
+
+	result = countingbloom_lookup_string(newcbf, "multi");
+	printf("cbf multi lookup: %d\n", result);
+	if (result != true) {
+		fprintf(stderr, "FAILURE: \"multi\" should be in filter\n");
+		return EXIT_FAILURE;
+	}
+
+	result = countingbloom_lookup_string(newcbf, "bar");
+	printf("cbf bar lookup: %d\n", result);
+	if (result != false) {
+		fprintf(stderr, "FAILURE: \"bar\" should NOT be in filter\n");
+		return EXIT_FAILURE;
+	}
+
+	// test creation of 16, 32, 64 bit filters
+	countingbloomfilter cbf16;
+	countingbloomfilter cbf32;
+	countingbloomfilter cbf64;
+
+	result = countingbloom_init(&cbf16, 20, 0.01, COUNTER_16BIT);
+	if (result != true) {
+		fprintf(stderr, "FAILURE: creation of 16 bit counter\n");
+		return EXIT_FAILURE;
+	}
+	printf("16 bit:\n");
+	printf("\tsize: %d\n", cbf16.size);
+	printf("\thash count: %d\n", cbf16.hashcount);
+	printf("\tcountermap size: %d\n", cbf16.countermap_size);
+	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (cbf16.csize + 3)));
+	countingbloom_destroy(cbf16);
+
+	result = countingbloom_init(&cbf32, 20, 0.01, COUNTER_32BIT);
+	if (result != true) {
+		fprintf(stderr, "FAILURE: creation of 32 bit counter\n");
+		return EXIT_FAILURE;
+	}
+	printf("32 bit:\n");
+	printf("\tsize: %d\n", cbf32.size);
+	printf("\thash count: %d\n", cbf32.hashcount);
+	printf("\tcountermap size: %d\n", cbf32.countermap_size);
+	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (cbf32.csize + 3)));
+	countingbloom_destroy(cbf32);
+
+	result = countingbloom_init(&cbf64, 20, 0.01, COUNTER_64BIT);
+	if (result != true) {
+		fprintf(stderr, "FAILURE: creation of64 bit counter\n");
+		return EXIT_FAILURE;
+	}
+	printf("64 bit:\n");
+	printf("\tsize: %d\n", cbf64.size);
+	printf("\thash count: %d\n", cbf64.hashcount);
+	printf("\tcountermap size: %d\n", cbf64.countermap_size);
+	printf("\tcounter size (bits): %d\n", (size_t)pow(2, (cbf64.csize + 3)));
+	countingbloom_destroy(cbf64);
+
 	// cleanup
+	remove("/tmp/countgbloom");
+
 	countingbloom_destroy(cbf);
+	countingbloom_destroy(newcbf);
 
 	return EXIT_SUCCESS;
 }
