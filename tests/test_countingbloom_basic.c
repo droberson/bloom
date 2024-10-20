@@ -7,7 +7,7 @@ int main() {
 	countingbloomfilter cbf;
 
 	printf("initializing counting bloom filter expecting 20 elements\n");
-	countingbloom_init(&cbf, 20, 0.01);
+	countingbloom_init(&cbf, 20, 0.01, COUNTER_8BIT);
 
 	// add some data
 	countingbloom_add_string(cbf, "foo");
@@ -52,24 +52,10 @@ int main() {
 		return EXIT_FAILURE;
 	}
 
-	// display filter
-	printf("contents: ");
-	for (size_t i = 0; i < cbf.size; i++) {
-		printf("%d ", cbf.countermap[i]);
-	}
-	printf("\n");
-
 	// test removal
 	printf("removing elements from filter\n");
 	countingbloom_remove_string(cbf, "bar");
 	countingbloom_remove_string(cbf, "multi");
-
-	// display filter
-	printf("contents: ");
-	for (size_t i = 0; i < cbf.size; i++) {
-		printf("%d ", cbf.countermap[i]);
-	}
-	printf("\n");
 
 	result = countingbloom_lookup_string(cbf, "bar");
 	printf("cbf bar lookup: %d\n", result);

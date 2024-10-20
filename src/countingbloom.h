@@ -6,18 +6,30 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* counter_size -- used for setting appropriately-sized counters, which can
+                   result in a reduced memory footprint if smaller counts are
+				   expected.
+*/
+typedef enum {
+	COUNTER_8BIT,
+	COUNTER_16BIT,
+	COUNTER_32BIT,
+	COUNTER_64BIT
+} counter_size;
+
 /* countingbloomfilter -- structure for a counting bloom filter
  */
 typedef struct {
-	size_t size;                /* size of counting bloom filter */
-	size_t hashcount;           /* number of hashes per element */
-	size_t countermap_size;     /* size of map */
-	uint8_t *countermap;        /* map of counting bloom filter */
+	uint64_t      size;              /* size of counting bloom filter */
+	uint64_t      hashcount;         /* number of hashes per element */
+	uint64_t      countermap_size;   /* size of map */
+	counter_size  csize;             /* size of counter: 8, 16, 32, 64 bit */
+	void         *countermap;        /* map of counting bloom filter */
 } countingbloomfilter;
 
 /* function declarations
  */
-bool   countingbloom_init(countingbloomfilter *, const size_t, const float);
+bool   countingbloom_init(countingbloomfilter *, const size_t, const float, counter_size);
 void   countingbloom_destroy(countingbloomfilter);
 size_t countingbloom_count(const countingbloomfilter, void *, size_t);
 size_t countingbloom_count_string(const countingbloomfilter, char *);

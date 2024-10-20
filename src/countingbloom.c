@@ -1,6 +1,4 @@
 /* countingbloom.c
- *
- * TODO: 16, 32, 64 bit counters if count is expected to exceed 255, 65535, ...
  */
 #include <string.h>
 #include <stdint.h>
@@ -33,18 +31,37 @@ static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
  *     cbf      - filter to initialize
  *     expected - expected number of elements in filter
  *     accuracy - margin of acceptable error. ex: 0.01 is "99.99%" accurate
+ *     csize    - size of counter: COUNTER_8BIT, _16BIT, _32BIT, _64BIT, ...
  *
  * Returns:
  *     true on success, false on failure
  */
-bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const float accuracy) {
-	cbf->size            = ideal_size(expected, accuracy);
-	cbf->hashcount       = (cbf->size / expected) * log(2);
-	cbf->countermap      = calloc(cbf->size, sizeof(uint8_t));
+bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const float accuracy, counter_size csize) {
+	cbf->size      = ideal_size(expected, accuracy);
+	cbf->hashcount = (cbf->size / expected) * log(2);
+	cbf->csize     = csize;
+
+	switch (csize) {
+	case COUNTER_8BIT:
+		cbf->countermap_size = cbf->size * sizeof(uint8_t);
+		break;
+	case COUNTER_16BIT:
+		cbf->countermap_size = cbf->size * sizeof(uint16_t);
+		break;
+	case COUNTER_32BIT:
+		cbf->countermap_size = cbf->size * sizeof(uint32_t);
+		break;
+	case COUNTER_64BIT:
+		cbf->countermap_size = cbf->size * sizeof(uint64_t);
+		break;
+	default:
+		break;
+	}
+
+	cbf->countermap = calloc(cbf->size, cbf->countermap_size);
 	if (cbf->countermap == NULL) {
 		return false;
 	}
-	return true;
 }
 
 /* countingbloom_destroy() -- free memory allocated by countingbloom_init()
@@ -57,6 +74,75 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
  */
 void countingbloom_destroy(countingbloomfilter cbf) {
 	free(cbf.countermap);
+}
+
+
+/* get_counter, inc_counter, dec_counter -- helper functions used to handle
+ *     different sized counters.
+ */
+static uint64_t get_counter(const countingbloomfilter *cbf, uint64_t position) {
+	switch (cbf->csize) {
+	case COUNTER_8BIT:	return  ((uint8_t *)cbf->countermap)[position];
+	case COUNTER_16BIT:	return ((uint16_t *)cbf->countermap)[position];
+	case COUNTER_32BIT:	return ((uint32_t *)cbf->countermap)[position];
+	case COUNTER_64BIT:	return ((uint64_t *)cbf->countermap)[position];
+	default:
+		return 0; // shouldn't get here
+	}
+}
+
+static void inc_counter(countingbloomfilter *cbf, uint64_t position) {
+	switch (cbf->csize) {
+	case COUNTER_8BIT:
+		if (((uint8_t *)cbf->countermap)[position] != UINT8_MAX) {
+			((uint8_t *)cbf->countermap)[position]++;
+		}
+		break;
+	case COUNTER_16BIT:
+		if (((uint16_t *)cbf->countermap)[position] != UINT16_MAX) {
+			((uint16_t *)cbf->countermap)[position]++;
+		}
+		break;
+	case COUNTER_32BIT:
+		if (((uint32_t *)cbf->countermap)[position] != UINT32_MAX) {
+			((uint32_t *)cbf->countermap)[position]++;
+		}
+		break;
+	case COUNTER_64BIT:
+		if (((uint64_t *)cbf->countermap)[position] != UINT64_MAX) {
+			((uint64_t *)cbf->countermap)[position]++;
+		}
+		break;
+	default:
+		return; // shouldn't get here
+	}
+}
+
+static void dec_counter(countingbloomfilter *cbf, uint64_t position) {
+	switch (cbf->csize) {
+		case COUNTER_8BIT:
+		if (((uint8_t *)cbf->countermap)[position] > 0) {
+			((uint8_t *)cbf->countermap)[position]--;
+		}
+		break;
+	case COUNTER_16BIT:
+		if (((uint16_t *)cbf->countermap)[position] > 0) {
+			((uint16_t *)cbf->countermap)[position]--;
+		}
+		break;
+	case COUNTER_32BIT:
+		if (((uint32_t *)cbf->countermap)[position] > 0) {
+			((uint32_t *)cbf->countermap)[position]--;
+		}
+		break;
+	case COUNTER_64BIT:
+		if (((uint64_t *)cbf->countermap)[position] > 0) {
+			((uint64_t *)cbf->countermap)[position]--;
+		}
+		break;
+	default:
+		return; // shouldn't get here
+	}
 }
 
 /* countingbloom_count() -- get approximate count of an element in the filter
@@ -72,14 +158,15 @@ void countingbloom_destroy(countingbloomfilter cbf) {
 size_t countingbloom_count(const countingbloomfilter cbf, void *element, size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
-	uint8_t  count = 0;
+	uint64_t count = UINT64_MAX;
 
 	for (int i = 0; i < cbf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		position = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
 
-		if (cbf.countermap[position] > count) {
-			count = cbf.countermap[position];
+		uint64_t current_count = get_counter(&cbf, position);
+		if (current_count < count) {
+			count = current_count;
 		}
 	}
 
@@ -120,7 +207,8 @@ bool countingbloom_lookup(const countingbloomfilter cbf, void *element, const si
 		mmh3_128(element, len, i, hash);
 		position = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
 
-		if (cbf.countermap[position] == 0) {
+		// if any counter is zero, element isn't in the filter
+		if (get_counter(&cbf,position) == 0) {
 			return false;
 		}
 	}
@@ -159,9 +247,7 @@ void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len)
 	for (int i = 0; i < cbf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		position = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
-		if (cbf.countermap[position] != 255) { // check for overflow condition
-			cbf.countermap[position] += 1;
-		}
+		inc_counter(&cbf, position);
 	}
 }
 
@@ -196,7 +282,7 @@ void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t l
 	for (int i = 0; i < cbf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
 		positions[i] = ((hash[0] % cbf.size) + (hash[1] % cbf.size)) % cbf.size;
-		if (cbf.countermap[positions[i]] == 0) {
+		if (get_counter(&cbf, positions[i]) == 0) {
 			shouldremove = false;
 			break;
 		}
@@ -204,7 +290,7 @@ void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t l
 
 	if (shouldremove) {
 		for (int i = 0; i < cbf.hashcount; i++) {
-			cbf.countermap[positions[i]] -= 1;
+			dec_counter(&cbf, positions[i]);
 		}
 	}
 }
