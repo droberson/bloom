@@ -82,7 +82,7 @@ void countingbloom_destroy(countingbloomfilter cbf) {
 /* get_counter, inc_counter, dec_counter -- helper functions used to handle
  *     different sized counters.
  */
-static uint64_t get_counter(const countingbloomfilter *cbf, uint64_t position) {
+static inline uint64_t get_counter(const countingbloomfilter *cbf, uint64_t position) {
 	switch (cbf->csize) {
 	case COUNTER_8BIT:	return  ((uint8_t *)cbf->countermap)[position];
 	case COUNTER_16BIT:	return ((uint16_t *)cbf->countermap)[position];
