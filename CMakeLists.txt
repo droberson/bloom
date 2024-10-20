@@ -10,7 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(SRC_FILES
     src/mmh3.c
     src/bloom.c
-    src/countingbloom.c
+    src/cbloom.c
     src/timedecay.c
     src/cuckoo.c
     src/gaussiannb.c
@@ -35,14 +35,14 @@ target_link_libraries(bloom_shared PUBLIC m)
 # Optionally add an example/test program
 add_executable(test_bloom_basic tests/test_bloom_basic.c)
 add_executable(test_timedecay_basic tests/test_timedecay_basic.c)
-add_executable(test_countingbloom_basic tests/test_countingbloom_basic.c)
+add_executable(test_cbloom_basic tests/test_cbloom_basic.c)
 add_executable(test_cuckoo_basic tests/test_cuckoo_basic.c)
 add_executable(test_gaussiannb_basic tests/test_gaussiannb_basic.c)
 
 # Link the example program with the shared library
 target_link_libraries(test_bloom_basic PRIVATE bloom_shared)
 target_link_libraries(test_timedecay_basic PRIVATE bloom_shared)
-target_link_libraries(test_countingbloom_basic PRIVATE bloom_shared)
+target_link_libraries(test_cbloom_basic PRIVATE bloom_shared)
 target_link_libraries(test_cuckoo_basic PRIVATE bloom_shared)
 target_link_libraries(test_gaussiannb_basic PRIVATE bloom_shared)
 
@@ -54,7 +54,7 @@ install(FILES
     src/bloom.h
     src/mmh3.h
     src/timedecay.h
-    src/countingbloom.h
+    src/cbloom.h
     src/cuckoo.h
     src/gaussiannb.h
     DESTINATION include/bloom)
@@ -64,6 +64,6 @@ install(CODE "execute_process(COMMAND ldconfig)")
 enable_testing()
 add_test(NAME bloom COMMAND bin/test_bloom_basic)
 add_test(NAME timedecay COMMAND bin/test_timedecay_basic)
-add_test(NAME countingbloom COMMAND bin/test_countingbloom_basic)
+add_test(NAME cbloom COMMAND bin/test_cbloom_basic)
 add_test(NAME cuckoo COMMAND bin/test_cuckoo_basic)
 add_test(NAME gaussiannb COMMAND bin/test_gaussiannb_basic)

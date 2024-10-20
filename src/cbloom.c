@@ -1,4 +1,4 @@
-/* countingbloom.c
+/* cbloom.c
  */
 #include <string.h>
 #include <stdint.h>
@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 
 #include "mmh3.h"
-#include "countingbloom.h"
+#include "cbloom.h"
 
 
 /* ideal_size() -- calculate ideal size of a filter
@@ -25,7 +25,7 @@ static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
 	return -(expected * log(accuracy) / pow(log(2.0), 2));
 }
 
-/* countingbloom_init() -- initialize counting bloom filter
+/* cbloom_init() -- initialize counting bloom filter
  *
  * Args:
  *     cbf      - filter to initialize
@@ -34,9 +34,10 @@ static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
  *     csize    - size of counter: COUNTER_8BIT, _16BIT, _32BIT, _64BIT, ...
  *
  * Returns:
- *     true on success, false on failure
+ *     CBF_SUCCESS (0) on success
+ *     corresponding error value on failure
  */
-bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const float accuracy, counter_size csize) {
+cbloom_error_t cbloom_init(cbloomfilter *cbf, const size_t expected, const float accuracy, counter_size csize) {
 	cbf->size      = ideal_size(expected, accuracy);
 	// add 0.5 to round up/down
 	cbf->hashcount = (uint64_t)((cbf->size / expected) * log(2) + 0.5);
@@ -56,18 +57,18 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
 		cbf->countermap_size = cbf->size * sizeof(uint64_t);
 		break;
 	default: // invalid counter size
-		return false;
+		return CBF_INVALIDCOUNTERSIZE;
 	}
 
 	cbf->countermap = calloc(1, cbf->countermap_size);
 	if (cbf->countermap == NULL) {
-		return false;
+		return CBF_OUTOFMEMORY;
 	}
 
-	return true;
+	return CBF_SUCCESS;
 }
 
-/* countingbloom_destroy() -- free memory allocated by countingbloom_init()
+/* cbloom_destroy() -- free memory allocated by cbloom_init()
  *
  * Args:
  *     cbf - filter to free
@@ -75,14 +76,14 @@ bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const f
  * Returns:
  *     Nothing
  */
-void countingbloom_destroy(countingbloomfilter cbf) {
+void cbloom_destroy(cbloomfilter cbf) {
 	free(cbf.countermap);
 }
 
 /* get_counter, inc_counter, dec_counter -- helper functions used to handle
  *     different sized counters.
  */
-static inline uint64_t get_counter(const countingbloomfilter *cbf, uint64_t position) {
+static inline uint64_t get_counter(const cbloomfilter *cbf, uint64_t position) {
 	switch (cbf->csize) {
 	case COUNTER_8BIT:	return  ((uint8_t *)cbf->countermap)[position];
 	case COUNTER_16BIT:	return ((uint16_t *)cbf->countermap)[position];
@@ -93,7 +94,7 @@ static inline uint64_t get_counter(const countingbloomfilter *cbf, uint64_t posi
 	}
 }
 
-static void inc_counter(countingbloomfilter *cbf, uint64_t position) {
+static void inc_counter(cbloomfilter *cbf, uint64_t position) {
 	switch (cbf->csize) {
 	case COUNTER_8BIT:
 		if (((uint8_t *)cbf->countermap)[position] != UINT8_MAX) {
@@ -120,7 +121,7 @@ static void inc_counter(countingbloomfilter *cbf, uint64_t position) {
 	}
 }
 
-static void dec_counter(countingbloomfilter *cbf, uint64_t position) {
+static void dec_counter(cbloomfilter *cbf, uint64_t position) {
 	switch (cbf->csize) {
 		case COUNTER_8BIT:
 		if (((uint8_t *)cbf->countermap)[position] > 0) {
@@ -147,7 +148,7 @@ static void dec_counter(countingbloomfilter *cbf, uint64_t position) {
 	}
 }
 
-/* countingbloom_count() -- get approximate count of an element in the filter
+/* cbloom_count() -- get approximate count of an element in the filter
  *
  * Args:
  *     cbf     - filter to use
@@ -156,8 +157,10 @@ static void dec_counter(countingbloomfilter *cbf, uint64_t position) {
  *
  * Returns:
  *     size_t representing the approximate count of 'element' in the filter
+ *
+ * TODO: test this
  */
-size_t countingbloom_count(const countingbloomfilter cbf, void *element, size_t len) {
+size_t cbloom_count(const cbloomfilter cbf, void *element, size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
 	uint64_t count = UINT64_MAX;
@@ -175,7 +178,7 @@ size_t countingbloom_count(const countingbloomfilter cbf, void *element, size_t 
 	return count;
 }
 
-/* countingbloom_count_string() -- helper function to get approximate count of
+/* cbloom_count_string() -- helper function to get approximate count of
  *                                 a string element in the filter.
  *
  * Args:
@@ -186,11 +189,11 @@ size_t countingbloom_count(const countingbloomfilter cbf, void *element, size_t 
  *     size_t representing the approximate count of 'element' in the filter
  */
 
-size_t countingbloom_count_string(const countingbloomfilter cbf, char *element) {
-	return countingbloom_count(cbf, (uint8_t *)element, strlen(element));
+size_t cbloom_count_string(const cbloomfilter cbf, char *element) {
+	return cbloom_count(cbf, (uint8_t *)element, strlen(element));
 }
 
-/* countingbloom_lookup() -- check if an element is likely in the filter
+/* cbloom_lookup() -- check if an element is likely in the filter
  *
  * Args:
  *     cbf     - filter to use
@@ -201,7 +204,7 @@ size_t countingbloom_count_string(const countingbloomfilter cbf, char *element) 
  *     true if element is probably in the filter
  *     false if element is definitely not in the filter
  */
-bool countingbloom_lookup(const countingbloomfilter cbf, void *element, const size_t len) {
+bool cbloom_lookup(const cbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
 
@@ -218,7 +221,7 @@ bool countingbloom_lookup(const countingbloomfilter cbf, void *element, const si
 	return true;
 }
 
-/* countingbloom_lookup_string() -- helper function for looking up strings
+/* cbloom_lookup_string() -- helper function for looking up strings
  *
  * Args:
  *     cbf     - filter to use
@@ -228,11 +231,11 @@ bool countingbloom_lookup(const countingbloomfilter cbf, void *element, const si
  *     true if element is probably in the set
  *     false if element is definitely not in the set
  */
-bool countingbloom_lookup_string(const countingbloomfilter cbf, const char *element) {
-	return countingbloom_lookup(cbf, (uint8_t *)element, strlen(element));
+bool cbloom_lookup_string(const cbloomfilter cbf, const char *element) {
+	return cbloom_lookup(cbf, (uint8_t *)element, strlen(element));
 }
 
-/* countingbloom_add() -- add an element to a counting bloom filter
+/* cbloom_add() -- add an element to a counting bloom filter
  *
  * Args:
  *     cbf     - filter to use
@@ -242,7 +245,7 @@ bool countingbloom_lookup_string(const countingbloomfilter cbf, const char *elem
  * Returns:
  *     Nothing
  */
-void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len) {
+void cbloom_add(cbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t position;
 
@@ -253,7 +256,7 @@ void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len)
 	}
 }
 
-/* countingbloom_add_string() -- helper function for adding strings
+/* cbloom_add_string() -- helper function for adding strings
  *
  * Args:
  *     cbf     - filter to use
@@ -262,11 +265,11 @@ void countingbloom_add(countingbloomfilter cbf, void *element, const size_t len)
  * Returns:
  *     Nothing
  */
-void countingbloom_add_string(countingbloomfilter cbf, const char *element) {
-	countingbloom_add(cbf, (uint8_t *)element, strlen(element));
+void cbloom_add_string(cbloomfilter cbf, const char *element) {
+	cbloom_add(cbf, (uint8_t *)element, strlen(element));
 }
 
-/* countingbloom_remove() -- remove an element from a counting bloom filter
+/* cbloom_remove() -- remove an element from a counting bloom filter
  *
  * Args:
  *     cbf     - filter to use
@@ -276,7 +279,7 @@ void countingbloom_add_string(countingbloomfilter cbf, const char *element) {
  * Returns:
  *     Nothing
  */
-void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t len) {
+void cbloom_remove(cbloomfilter cbf, void *element, const size_t len) {
 	uint64_t hash[2];
 	uint64_t positions[cbf.hashcount];
 
@@ -297,7 +300,7 @@ void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t l
 	}
 }
 
-/* countingbloom_remove_string() -- helper function to remove strings
+/* cbloom_remove_string() -- helper function to remove strings
  *
  * Args:
  *     cbf     - filter to use
@@ -306,11 +309,11 @@ void countingbloom_remove(countingbloomfilter cbf, void *element, const size_t l
  * Returns:
  *     Nothing
  */
-void countingbloom_remove_string(countingbloomfilter cbf, const char *element) {
-	countingbloom_remove(cbf, (uint8_t *)element, strlen(element));
+void cbloom_remove_string(cbloomfilter cbf, const char *element) {
+	cbloom_remove(cbf, (uint8_t *)element, strlen(element));
 }
 
-/* countingbloom_save() -- save a counting bloom filter to disk
+/* cbloom_save() -- save a counting bloom filter to disk
  *
  * Format of these files on disk:
  *    +------------------------------+
@@ -324,71 +327,102 @@ void countingbloom_remove_string(countingbloomfilter cbf, const char *element) {
  *     path - path to save filter
  *
  * Returns:
- *     true on success, false on failure
+ *     CBF_SUCCESS on success
+ *     CBF_FOPEN if unable to open file
+ *     CBF_FWRITE if unable to write to file
  */
-bool countingbloom_save(countingbloomfilter cbf, const char *path) {
+cbloom_error_t cbloom_save(cbloomfilter cbf, const char *path) {
 	FILE        *fp;
 	struct stat  sb;
 
 	fp = fopen(path, "wb");
 	if (fp == NULL) {
-		return false;
+		return CBF_FOPEN;
 	}
 
-	if (fwrite(&cbf, sizeof(countingbloomfilter), 1, fp) != 1 ||
+	if (fwrite(&cbf, sizeof(cbloomfilter), 1, fp) != 1 ||
 		fwrite(cbf.countermap, cbf.countermap_size, 1, fp) != 1) {
 		fclose(fp);
-		return false;
+		return CBF_FWRITE;
 	}
 
 	fclose(fp);
-	return true;
+	return CBF_SUCCESS;
 }
 
-/* countingbloom_load() -- load a counting bloom filter from disk
+/* cbloom_load() -- load a counting bloom filter from disk
  *
  * Args:
  *     cbf  - counting bloom filter struct to populate
  *     path - path on disk to counting bloom filter file
  *
  * Returns:
- *     true on success, false on failure
+ *     CBF_SUCCESS on success
+ *     CBF_FOPEN if unable to open file
+ *     CBF_FREAD if unable to read file
+ *     CBF_FSTAT if unable to stat() file descriptor
+ *     CBF_INVALIDFILE if file is unable to be parsed
+ *     CBF_OUTOFMEMORY if out of memory
  */
-bool countingbloom_load(countingbloomfilter *cbf, const char *path) {
+cbloom_error_t cbloom_load(cbloomfilter *cbf, const char *path) {
 	FILE        *fp;
     struct stat  sb;
 
 	fp = fopen(path, "rb");
 	if (fp == NULL) {
-		return false;
+		return CBF_FOPEN;
 	}
 
 	if (fstat(fileno(fp), &sb) == -1) {
 		fclose(fp);
-		return false;
+		return CBF_FSTAT;
 	}
 
-	if (fread(cbf, sizeof(countingbloomfilter), 1, fp) != 1) {
+	if (fread(cbf, sizeof(cbloomfilter), 1, fp) != 1) {
 		fclose(fp);
 		free(cbf->countermap);
-		return false;
+		return CBF_FREAD;
 	}
 
 	// basic sanity check. should fail if the file isn't valid
-	if (sizeof(countingbloomfilter) + cbf->countermap_size != sb.st_size) {
+	if (sizeof(cbloomfilter) + cbf->countermap_size != sb.st_size) {
 		fclose(fp);
-		return false;
+		return CBF_INVALIDFILE;
 	}
 
 	cbf->countermap = malloc(cbf->countermap_size);
 	if (cbf->countermap == NULL) {
 		fclose(fp);
-		return false;
+		return CBF_OUTOFMEMORY;
 	}
 
-	fread(cbf->countermap, cbf->size, 1, fp);
+	if (fread(cbf->countermap, cbf->countermap_size, 1, fp) != 1) {
+		fclose(fp);
+		free(cbf->countermap);
+		return CBF_FREAD;
+	}
 
 	fclose(fp);
 
-	return true;
+	return CBF_SUCCESS;
+}
+
+
+/* cbloom_strerror() -- returns string containing error message
+ *
+ * Args:
+ *     error - error number returned from function
+ *
+ * Returns:
+ *     "Unknown error" if 'error' is out of range. Otherwise, a pointer to
+ *     a string containing relevant error message.
+ *
+ * TODO test
+ */
+const char *cbloom_strerror(cbloom_error_t error) {
+	if (error < 0 || error >= CBF_ERRORCOUNT) {
+		return "Unknown error";
+	}
+
+	return cbloom_errors[error];
 }
