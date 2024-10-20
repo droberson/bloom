@@ -368,7 +368,11 @@ bool countingbloom_load(countingbloomfilter *cbf, const char *path) {
 		return false;
 	}
 
-	fread(cbf, sizeof(countingbloomfilter), 1, fp);
+	if (fread(cbf, sizeof(countingbloomfilter), 1, fp) != 1) {
+		fclose(fp);
+		free(cbf->countermap);
+		return false;
+	}
 
 	// basic sanity check. should fail if the file isn't valid
 	if (sizeof(countingbloomfilter) + cbf->countermap_size != sb.st_size) {
@@ -376,7 +380,7 @@ bool countingbloom_load(countingbloomfilter *cbf, const char *path) {
 		return false;
 	}
 
-	cbf->countermap = malloc(cbf->size);
+	cbf->countermap = malloc(cbf->countermap_size);
 	if (cbf->countermap == NULL) {
 		fclose(fp);
 		return false;
