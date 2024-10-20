@@ -38,7 +38,8 @@ static uint64_t ideal_size(const uint64_t expected, const float accuracy) {
  */
 bool countingbloom_init(countingbloomfilter *cbf, const size_t expected, const float accuracy, counter_size csize) {
 	cbf->size      = ideal_size(expected, accuracy);
-	cbf->hashcount = (cbf->size / expected) * log(2);
+	// add 0.5 to round up/down
+	cbf->hashcount = (uint64_t)((cbf->size / expected) * log(2) + 0.5);
 	cbf->csize     = csize;
 
 	switch (csize) {
@@ -370,7 +371,7 @@ bool countingbloom_load(countingbloomfilter *cbf, const char *path) {
 	fread(cbf, sizeof(countingbloomfilter), 1, fp);
 
 	// basic sanity check. should fail if the file isn't valid
-	if (sizeof(countingbloomfilter) + cbf->size != sb.st_size) {
+	if (sizeof(countingbloomfilter) + cbf->countermap_size != sb.st_size) {
 		fclose(fp);
 		return false;
 	}
