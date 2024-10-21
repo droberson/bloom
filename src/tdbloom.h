@@ -1,6 +1,5 @@
 /* tdbloom.h
  * TODO: calculate used/remaining capacity of filters
- * TODO: zero out/clear filters
  */
 #ifndef TDBLOOM_H
 #define TDBLOOM_H
@@ -9,20 +8,32 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/*
+/* tdbloom_error_t -- error handling return values
  */
 typedef enum {
 	TDBF_SUCCESS,
 	TDBF_INVALIDTIMEOUT,
 	TDBF_OUTOFMEMORY,
-	// counter
+	TDBF_FOPEN,
+	TDBF_FREAD,
+	TDBF_FWRITE,
+	TDBF_FSTAT,
+	TDBF_INVALIDFILE,
+	// used for counting number of statuses. don't add statuses below this line
 	TDBF_ERRORCOUNT
 } tdbloom_error_t;
 
+/* tdbloom_errors -- human-readable error messages
+ */
 const char *tdbloom_errors[] = {
 	"Success",
 	"Invalid timeout value",
-	"Out of memory"
+	"Out of memory",
+	"Unable to open file",
+	"Unable to read file",
+	"Unable to write to file",
+	"fstat() error",
+	"Invalid file format"
 };
 
 /* tdbloom -- time-decaying bloom filter structure
@@ -47,12 +58,14 @@ tdbloom_error_t  tdbloom_init(tdbloom *,
 							  const float,
 							  const size_t);
 void             tdbloom_destroy(tdbloom);
+void             tdbloom_clear(tdbloom *);
+void             tdbloom_reset_start_time(tdbloom *);
 void             tdbloom_add(tdbloom *, void *, const size_t);
 void             tdbloom_add_string(tdbloom, const char *);
 bool             tdbloom_lookup(const tdbloom, void *, const size_t);
 bool             tdbloom_lookup_string(const tdbloom, const char *);
-bool             tdbloom_save(tdbloom, const char *);
-bool             tdbloom_load(tdbloom *, const char *);
+tdbloom_error_t  tdbloom_save(tdbloom, const char *);
+tdbloom_error_t  tdbloom_load(tdbloom *, const char *);
 const char      *tdbloom_strerror(tdbloom_error_t);
 
 #endif /* TDBLOOM_H */

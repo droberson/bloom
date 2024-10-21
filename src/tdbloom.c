@@ -104,6 +104,34 @@ void tdbloom_destroy(tdbloom tdbf) {
 	free(tdbf.filter);
 }
 
+/* tdbloom_clear() - clear the contents of time-decaying bloom filter and
+ *                   reset the start time to 'now'
+ *
+ * Args:
+ *     tdbf - filter to clear
+ *
+ * Returns:
+ *     Nothing
+ */
+void tdbloom_clear(tdbloom *tdbf) {
+	memset(tdbf->filter, 0, tdbf->filter_size);
+	tdbf->start_time = get_monotonic_time();
+}
+
+/* tdbloom_reset_start_time() - resets the start time of a time-decaying bloom
+ *                              filter to 'now', which could be useful for
+ *                              pausing a filter while preserving its data.
+ *
+ * Args:
+ *     tdbf - filter to reset start time
+ *
+ * Returns:
+ *     Nothing
+ */
+void tdbloom_reset_start_time(tdbloom *tdbf) {
+	tdbf->start_time = get_monotonic_time();
+}
+
 /* tdbloom_add() - add an element to a time filter
  *
  * Args:
@@ -170,7 +198,7 @@ bool tdbloom_lookup(const tdbloom tdbf, void *element, const size_t len) {
 
 		size_t value;
 		switch(tdbf.bytes) {
-		case 1:	value = ((uint8_t *)tdbf.filter)[result];	break;
+		case 1:	value = ((uint8_t *)tdbf.filter)[result];  break;
 		case 2:	value = ((uint16_t *)tdbf.filter)[result]; break;
 		case 4:	value = ((uint32_t *)tdbf.filter)[result]; break;
 		case 8:	value = ((uint64_t *)tdbf.filter)[result]; break;
@@ -204,7 +232,7 @@ bool tdbloom_lookup_string(const tdbloom tdbf, const char *element) {
  *
  * Format of these files on disk is:
  *    +------------------+
- *    | tdbloom struct |
+ *    |  tdbloom struct  |
  *    +------------------+
  *    |      bitmap      |
  *    +------------------+
@@ -214,24 +242,29 @@ bool tdbloom_lookup_string(const tdbloom tdbf, const char *element) {
  *     path - file path to save filter
  *
  * Returns:
- *      true on success, false on failure
+ *      TDBF_SUCCESS on success
+ *      TDBF_FOPEN if unable to open file for writing
+ *      TDBF_FWRITE if unable to write to file
  *
  * TODO: test tdbloom_save()
  */
-bool tdbloom_save(tdbloom tdbf, const char *path) {
+tdbloom_error_t tdbloom_save(tdbloom tdbf, const char *path) {
 	FILE *fp;
 
 	fp = fopen(path, "wb");
 	if (fp == NULL) {
-		return false;
+		return TDBF_FOPEN;
 	}
 
-	fwrite(&tdbf, sizeof(tdbloom), 1, fp);
-	fwrite(tdbf.filter, tdbf.filter_size, 1, fp);
+	if (fwrite(&tdbf, sizeof(tdbloom), 1, fp) != 1 ||
+		fwrite(tdbf.filter, tdbf.filter_size, 1, fp)) {
+		fclose(fp);
+		return TDBF_FWRITE;
+	}
 
 	fclose(fp);
 
-	return true;
+	return TDBF_SUCCESS;
 }
 
 /* tdbloom_load() -- load a time-decaying bloom filter from disk
@@ -241,44 +274,56 @@ bool tdbloom_save(tdbloom tdbf, const char *path) {
  *     path - location of filter on disk
  *
  * Returns:
- *     true on success, false on failure
+ *     TDBF_SUCCESS on success
+ *     TDBF_FOPEN if unable to open file
+ *     TDBF_FREAD if unable to read file
+ *     TDBF_FSTAT if fstat() fails
+ *     TDBF_INVALIDFILE if file format is incorrect
+ *     TDBF_OUTOFMEMORY if memory allocation failed
  *
  * TODO: test tdbloom_save()
  */
-bool tdbloom_load(tdbloom *tdbf, const char *path) {
+tdbloom_error_t tdbloom_load(tdbloom *tdbf, const char *path) {
 	FILE        *fp;
 	struct stat  sb;
 
 	fp = fopen(path, "rb");
 	if (fp == NULL) {
-		return false;
+		return TDBF_FOPEN;
 	}
 
 	if (fstat(fileno(fp), &sb) == -1) {
 		fclose(fp);
-		return false;
+		return TDBF_FSTAT;
 	}
 
-	fread(tdbf, sizeof(tdbloom), 1, fp);
+	if (fread(tdbf, sizeof(tdbloom), 1, fp) != 1) {
+		fclose(fp);
+		return TDBF_FREAD;
+	}
 
 	// basic sanity checks. should fail if file is not a filter
 	if (tdbf->filter_size != (tdbf->size * tdbf->bytes) ||
 		(sizeof(tdbloom) + tdbf->filter_size) != sb.st_size) {
 		fclose(fp);
-		return false;
+		return TDBF_INVALIDFILE;
 	}
 
 	tdbf->filter = malloc(tdbf->filter_size);
 	if (tdbf->filter == NULL) {
 		fclose(fp);
-		return false;
+		return TDBF_OUTOFMEMORY;
 	}
 
-	fread(tdbf->filter, tdbf->filter_size, 1, fp);
+	if (fread(tdbf->filter, tdbf->filter_size, 1, fp) != 1) {
+		free(tdbf->filter);
+		fclose(fp);
+		return TDBF_FREAD;
+	}
 
 	fclose(fp);
 
-	return true;
+	return TDBF_SUCCESS;
 }
 
 /* tdbloom_strerror() -- returns string containing error message
