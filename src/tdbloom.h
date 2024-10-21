@@ -13,12 +13,16 @@
  */
 typedef enum {
 	TDBF_SUCCESS,
+	TDBF_INVALIDTIMEOUT,
+	TDBF_OUTOFMEMORY,
 	// counter
 	TDBF_ERRORCOUNT
 } tdbloom_error_t;
 
 const char *tdbloom_errors[] = {
-	"Success"
+	"Success",
+	"Invalid timeout value",
+	"Out of memory"
 };
 
 /* tdbloom -- time-decaying bloom filter structure
@@ -38,13 +42,17 @@ typedef struct {
 
 /* function definitions
  */
-bool tdbloom_init(tdbloom *, const size_t, const float, const size_t);
-void tdbloom_destroy(tdbloom);
-void tdbloom_add(tdbloom *, void *, const size_t);
-void tdbloom_add_string(tdbloom, const char *);
-bool tdbloom_lookup(const tdbloom, void *, const size_t);
-bool tdbloom_lookup_string(const tdbloom, const char *);
-bool tdbloom_save(tdbloom, const char *);
-bool tdbloom_load(tdbloom *, const char *);
+tdbloom_error_t  tdbloom_init(tdbloom *,
+							  const size_t,
+							  const float,
+							  const size_t);
+void             tdbloom_destroy(tdbloom);
+void             tdbloom_add(tdbloom *, void *, const size_t);
+void             tdbloom_add_string(tdbloom, const char *);
+bool             tdbloom_lookup(const tdbloom, void *, const size_t);
+bool             tdbloom_lookup_string(const tdbloom, const char *);
+bool             tdbloom_save(tdbloom, const char *);
+bool             tdbloom_load(tdbloom *, const char *);
+const char      *tdbloom_strerror(tdbloom_error_t);
 
 #endif /* TDBLOOM_H */

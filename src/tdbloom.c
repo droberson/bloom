@@ -55,11 +55,11 @@ static time_t get_monotonic_time() {
  *     timeout  - number of seconds an element is valid
  *
  * Returns:
- *     true on success, false on failure
- *
- * TODO: report reason for error.
+ *     TDBF_SUCCESS on success
+ *     TDBF_INVALIDTIMEOUT if value of 'timeout' isn't sane
+ *     TDBF_OUTOFMEMORY if unable to allocate memory
  */
-bool tdbloom_init(tdbloom *tf, const size_t expected, const float accuracy, const size_t timeout) {
+tdbloom_error_t tdbloom_init(tdbloom *tf, const size_t expected, const float accuracy, const size_t timeout) {
 	tf->size       = ideal_size(expected, accuracy);
 	tf->hashcount  = (tf->size / expected) * log(2);
 	tf->timeout    = timeout;
@@ -68,9 +68,10 @@ bool tdbloom_init(tdbloom *tf, const size_t expected, const float accuracy, cons
 	tf->start_time = get_monotonic_time();
 
 	// decide which datatype to use for storing timestamps
+	/// TODO: test this
 	int bytes;
 	if (sizeof(time_t) == 4 && timeout > UINT32_MAX) {
-		return false;
+		return TDBF_INVALIDTIMEOUT;
 	}
 
 	if      (timeout < UINT8_MAX)   { bytes = 1; tf->max_time = UINT8_MAX; }
@@ -82,13 +83,13 @@ bool tdbloom_init(tdbloom *tf, const size_t expected, const float accuracy, cons
 
 	tf->filter = calloc(tf->size, bytes);
 	if (tf->filter == NULL) {
-		return false;
+		return TDBF_OUTOFMEMORY;
 	}
 
 	// calculate filter size
 	tf->filter_size = tf->size * tf->bytes;
 
-	return true;
+	return TDBF_SUCCESS;
 }
 
 /* tdbloom_destroy() - uninitialize a time filter
@@ -278,4 +279,23 @@ bool tdbloom_load(tdbloom *tf, const char *path) {
 	fclose(fp);
 
 	return true;
+}
+
+/* tdbloom_strerror() -- returns string containing error message
+ *
+ * Args:
+ *     error - error number returned from function
+ *
+ * Returns:
+ *     "Unknown error" if 'error' is out of range. Otherwise, a pointer to
+ *     a string containing relevant error message.
+ *
+ * TODO test
+ */
+const char *tdbloom_strerror(tdbloom_error_t error) {
+	if (error < 0 || error >= TDBF_ERRORCOUNT) {
+		return "Unknown error";
+	}
+
+	return tdbloom_errors[error];
 }

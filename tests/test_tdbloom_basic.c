@@ -1,3 +1,5 @@
+/* test_tdbloom_basic.c
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,7 +11,7 @@ int main() {
 	tdbloom tf;
 
 	printf("Creating a time-decaying bloom filter. 10 elements, 2 seconds\n");
-	tdbloom_init(&tf, 10, 0.01, 2);
+	tdbloom_error_t init_result = tdbloom_init(&tf, 10, 0.01, 2);
 
 	printf("size of filter: %d\n", tf.size);
 	printf("time value bytes: %d\n", tf.bytes);
