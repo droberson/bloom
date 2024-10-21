@@ -1,11 +1,11 @@
-# bloom
+# archbloom
 
 ![License](https://img.shields.io/github/license/droberson/bloom)
 ![GitHub Issues](https://img.shields.io/github/issues/droberson/bloom)
 
 
 This project includes implementations of various probabilistic data
-structures and algorithms in C.
+structures and algorithms in C, presented as a library.
 
 ## Classic, vanilla bloom filters
 
@@ -109,10 +109,24 @@ make install
 
 You may need to run `ldconfig` after installing.
 
+# Doxygen
+
+To build documentation with Doxygen, please be sure that `doxygen` and
+`graphviz` are installed on your system:
+
+```
+apt install doxygen graphviz
+```
+
+Then invoke cmake, defining DBUILD_DOC=ON:
+
+```
+cmake -DBUILD_DOC=ON
+```
 
 # Testing
 
-running `make test` from the build directory should run unit tests.
+Running `make test` from the build directory should run unit tests.
 
 # About
 
@@ -140,3 +154,12 @@ took significant effort for me to understand. Hopefully, these
 examples can help others make more sense of these algorithms and be
 leveraged for good.
 
+This was named "archbloom" during a conversation with my big homie
+Quinten. I needed to rename the project because "libbloom" is already
+taken and this does a lot more than bloom filters now. Quinten
+mentioned the name "archbloom", so I Googled this to see if it had any
+jacked up connotations that I wasn't aware of. One of the first
+results was someone's World of Warcraft character profile. This
+character was a "night elf feral druid". Knowing next to nothing about
+WoW, I thought this was pretty hard. As such, archbloom has been
+written into lore and it simply is what it is.
