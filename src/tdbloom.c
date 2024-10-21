@@ -1,6 +1,5 @@
 /* tdbloom.c
  */
-
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
@@ -14,7 +13,8 @@
 #include "tdbloom.h"
 #include "mmh3.h"
 
-/* ideal_size() - calculate ideal size of a filter
+/* ideal_size() - calculate ideal size of a filter based on the expected
+ *                number of elements and desired accuracy.
  *
  * Args:
  *     expected - maximum expected number of elements
@@ -46,10 +46,10 @@ static time_t get_monotonic_time() {
 	return ts.tv_sec;
 }
 
-/* tdbloom_init() - initialize a time filter
+/* tdbloom_init() - initialize a time-decaying bloom filter
  *
  * Args:
- *     tf       - pointer to tdbloom structure
+ *     tdbf     - pointer to tdbloom structure
  *     expected - maximum expected number of elements
  *     accuracy - acceptable false positive rate. ex: 0.01 == 99.99% accuracy
  *     timeout  - number of seconds an element is valid
@@ -59,35 +59,35 @@ static time_t get_monotonic_time() {
  *     TDBF_INVALIDTIMEOUT if value of 'timeout' isn't sane
  *     TDBF_OUTOFMEMORY if unable to allocate memory
  */
-tdbloom_error_t tdbloom_init(tdbloom *tf, const size_t expected, const float accuracy, const size_t timeout) {
-	tf->size       = ideal_size(expected, accuracy);
-	tf->hashcount  = (tf->size / expected) * log(2);
-	tf->timeout    = timeout;
-	tf->expected   = expected;
-	tf->accuracy   = accuracy;
-	tf->start_time = get_monotonic_time();
+tdbloom_error_t tdbloom_init(tdbloom *tdbf, const size_t expected, const float accuracy, const size_t timeout) {
+	tdbf->size       = ideal_size(expected, accuracy);
+	tdbf->hashcount  = (tdbf->size / expected) * log(2);
+	tdbf->timeout    = timeout;
+	tdbf->expected   = expected;
+	tdbf->accuracy   = accuracy;
+	tdbf->start_time = get_monotonic_time();
 
 	// decide which datatype to use for storing timestamps
 	/// TODO: test this
 	int bytes;
-	if (sizeof(time_t) == 4 && timeout > UINT32_MAX) {
+	if (timeout > UINT64_MAX || sizeof(time_t) == 4 && timeout > UINT32_MAX) {
 		return TDBF_INVALIDTIMEOUT;
 	}
 
-	if      (timeout < UINT8_MAX)   { bytes = 1; tf->max_time = UINT8_MAX; }
-	else if (timeout < UINT16_MAX)  { bytes = 2; tf->max_time = UINT16_MAX; }
-	else if (timeout < UINT32_MAX)  { bytes = 4; tf->max_time = UINT32_MAX; }
-	else if (timeout <= UINT64_MAX) { bytes = 8; tf->max_time = UINT64_MAX; }
+	if      (timeout < UINT8_MAX)   { bytes = 1; tdbf->max_time = UINT8_MAX; }
+	else if (timeout < UINT16_MAX)  { bytes = 2; tdbf->max_time = UINT16_MAX; }
+	else if (timeout < UINT32_MAX)  { bytes = 4; tdbf->max_time = UINT32_MAX; }
+	else if (timeout <= UINT64_MAX) { bytes = 8; tdbf->max_time = UINT64_MAX; }
 
-	tf->bytes = bytes;
+	tdbf->bytes = bytes;
 
-	tf->filter = calloc(tf->size, bytes);
-	if (tf->filter == NULL) {
+	tdbf->filter = calloc(tdbf->size, bytes);
+	if (tdbf->filter == NULL) {
 		return TDBF_OUTOFMEMORY;
 	}
 
 	// calculate filter size
-	tf->filter_size = tf->size * tf->bytes;
+	tdbf->filter_size = tdbf->size * tdbf->bytes;
 
 	return TDBF_SUCCESS;
 }
@@ -95,13 +95,13 @@ tdbloom_error_t tdbloom_init(tdbloom *tf, const size_t expected, const float acc
 /* tdbloom_destroy() - uninitialize a time filter
  *
  * Args:
- *     tf - filter to destroy
+ *     tdbf - filter to destroy
  *
  * Returns:
  *     Nothing
  */
-void tdbloom_destroy(tdbloom tf) {
-	free(tf.filter);
+void tdbloom_destroy(tdbloom tdbf) {
+	free(tdbf.filter);
 }
 
 /* tdbloom_add() - add an element to a time filter
@@ -118,7 +118,7 @@ void tdbloom_add(tdbloom *tf, void *element, const size_t len) {
 	uint64_t    result;
 	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
-	size_t      ts = ((now - tf->start_time) % tf->max_time) + 1;
+	size_t      ts = ((now - tf->start_time) % tf->max_time + tf->max_time) % tf->max_time + 1;
 
 	for (int i = 0; i < tf->hashcount; i++) {
 		mmh3_128(element, len, i, hash);
@@ -135,20 +135,20 @@ void tdbloom_add(tdbloom *tf, void *element, const size_t len) {
 /* tdbloom_add_string() - add a string element to a time filter
  *
  * Args:
- *     tf      - time filter to add element to
+ *     tdbf    - time filter to add element to
  *     element - element to add to filter
  *
  * Returns:
  *     Nothing
  */
-void tdbloom_add_string(tdbloom tf, const char *element) {
-	tdbloom_add(&tf, (uint8_t *)element, strlen(element));
+void tdbloom_add_string(tdbloom tdbf, const char *element) {
+	tdbloom_add(&tdbf, (uint8_t *)element, strlen(element));
 }
 
 /* tdbloom_lookup() - check if element exists within tdbloom
  *
  * Args:
- *     tf      - time filter to perform lookup against
+ *     tdbf    - time filter to perform lookup against
  *     element - element to search for
  *     len     - length of element to search (bytes)
  *
@@ -156,28 +156,28 @@ void tdbloom_add_string(tdbloom tf, const char *element) {
  *     true if element is in filter
  *     false if element is not in filter
  */
-bool tdbloom_lookup(const tdbloom tf, void *element, const size_t len) {
+bool tdbloom_lookup(const tdbloom tdbf, void *element, const size_t len) {
 	uint64_t    result;
 	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
-	size_t      ts = ((now - tf.start_time) % tf.max_time) + 1;
+	size_t      ts = ((now - tdbf.start_time) % tdbf.max_time + tdbf.max_time) % tdbf.max_time + 1;
 
-	if ((now - tf.start_time) > tf.max_time) { return false; }
+	if ((now - tdbf.start_time) > tdbf.max_time) { return false; }
 
-	for (int i = 0; i < tf.hashcount; i++) {
+	for (int i = 0; i < tdbf.hashcount; i++) {
 		mmh3_128(element, len, i, hash);
-		result = ((hash[0] % tf.size) + (hash[1] % tf.size)) % tf.size;
+		result = ((hash[0] % tdbf.size) + (hash[1] % tdbf.size)) % tdbf.size;
 
 		size_t value;
-		switch(tf.bytes) {
-		case 1:	value = ((uint8_t *)tf.filter)[result];	break;
-		case 2:	value = ((uint16_t *)tf.filter)[result]; break;
-		case 4:	value = ((uint32_t *)tf.filter)[result]; break;
-		case 8:	value = ((uint64_t *)tf.filter)[result]; break;
+		switch(tdbf.bytes) {
+		case 1:	value = ((uint8_t *)tdbf.filter)[result];	break;
+		case 2:	value = ((uint16_t *)tdbf.filter)[result]; break;
+		case 4:	value = ((uint32_t *)tdbf.filter)[result]; break;
+		case 8:	value = ((uint64_t *)tdbf.filter)[result]; break;
 		}
 
 		if (value == 0 ||
-			((ts - value + tf.max_time) % tf.max_time) > tf.timeout) {
+			((ts - value + tdbf.max_time) % tdbf.max_time) > tdbf.timeout) {
 			return false;
 		}
 	}
@@ -188,15 +188,15 @@ bool tdbloom_lookup(const tdbloom tf, void *element, const size_t len) {
 /* tdbloom_lookup_string() -- helper function to handle string lookups
  *
  * Args:
- *     tf      - filter to use
+ *     tdbf    - filter to use
  *     element - string element to lookup
  *
  * Returns:
  *     true if element is likely in the filter
  *     false if element is definitely not in the filter
  */
-bool tdbloom_lookup_string(const tdbloom tf, const char *element) {
-	return tdbloom_lookup(tf, (uint8_t *)element, strlen(element));
+bool tdbloom_lookup_string(const tdbloom tdbf, const char *element) {
+	return tdbloom_lookup(tdbf, (uint8_t *)element, strlen(element));
 }
 
 
@@ -210,7 +210,7 @@ bool tdbloom_lookup_string(const tdbloom tf, const char *element) {
  *    +------------------+
  *
  * Args:
- *     tf   - filter to save
+ *     tdbf - filter to save
  *     path - file path to save filter
  *
  * Returns:
@@ -218,7 +218,7 @@ bool tdbloom_lookup_string(const tdbloom tf, const char *element) {
  *
  * TODO: test tdbloom_save()
  */
-bool tdbloom_save(tdbloom tf, const char *path) {
+bool tdbloom_save(tdbloom tdbf, const char *path) {
 	FILE *fp;
 
 	fp = fopen(path, "wb");
@@ -226,8 +226,8 @@ bool tdbloom_save(tdbloom tf, const char *path) {
 		return false;
 	}
 
-	fwrite(&tf, sizeof(tdbloom), 1, fp);
-	fwrite(tf.filter, tf.filter_size, 1, fp);
+	fwrite(&tdbf, sizeof(tdbloom), 1, fp);
+	fwrite(tdbf.filter, tdbf.filter_size, 1, fp);
 
 	fclose(fp);
 
@@ -237,7 +237,7 @@ bool tdbloom_save(tdbloom tf, const char *path) {
 /* tdbloom_load() -- load a time-decaying bloom filter from disk
  *
  * Args:
- *     tf   - tdbloom struct of new filter
+ *     tdbf - tdbloom struct of new filter
  *     path - location of filter on disk
  *
  * Returns:
@@ -245,7 +245,7 @@ bool tdbloom_save(tdbloom tf, const char *path) {
  *
  * TODO: test tdbloom_save()
  */
-bool tdbloom_load(tdbloom *tf, const char *path) {
+bool tdbloom_load(tdbloom *tdbf, const char *path) {
 	FILE        *fp;
 	struct stat  sb;
 
@@ -259,22 +259,22 @@ bool tdbloom_load(tdbloom *tf, const char *path) {
 		return false;
 	}
 
-	fread(tf, sizeof(tdbloom), 1, fp);
+	fread(tdbf, sizeof(tdbloom), 1, fp);
 
 	// basic sanity checks. should fail if file is not a filter
-	if (tf->filter_size != (tf->size * tf->bytes) ||
-		(sizeof(tdbloom) + tf->filter_size) != sb.st_size) {
+	if (tdbf->filter_size != (tdbf->size * tdbf->bytes) ||
+		(sizeof(tdbloom) + tdbf->filter_size) != sb.st_size) {
 		fclose(fp);
 		return false;
 	}
 
-	tf->filter = malloc(tf->filter_size);
-	if (tf->filter == NULL) {
+	tdbf->filter = malloc(tdbf->filter_size);
+	if (tdbf->filter == NULL) {
 		fclose(fp);
 		return false;
 	}
 
-	fread(tf->filter, tf->filter_size, 1, fp);
+	fread(tdbf->filter, tdbf->filter_size, 1, fp);
 
 	fclose(fp);
 
