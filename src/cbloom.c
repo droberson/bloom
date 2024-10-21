@@ -1,4 +1,6 @@
 /* cbloom.c
+ * TODO: clear/reset function
+ * TODO: calculate saturation
  */
 #include <string.h>
 #include <stdint.h>
