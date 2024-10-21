@@ -46,11 +46,11 @@ represent an element, a counter is used. This provides the developer
 with the ability to remove elements from a set at the expense of
 larger filter sizes.
 
-At the moment, this uses a `uint8_t` (8 bits, maximum count 255) as
-counters. If larger counters are needed, this can be modified to use
-`uint16_t` to increase counter capacity to 65535, however this doubles
-the memory and storage required to represent a filter. `uint32_t`
-would provide even larger counters, but at quadruple the size.
+This implementation supports using 1, 2, 4, and 8 byte counters. This
+can reduce the memory footprint required for counting bloom filters at
+the expense of lower maximum value for the counters. If an application
+doesn't expect to have large values in a counting bloom filter, using
+a smaller width counter will reduce memory costs.
 
 ## Cuckoo filters
 
