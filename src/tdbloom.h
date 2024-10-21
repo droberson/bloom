@@ -1,14 +1,27 @@
-/* timedecay.h
+/* tdbloom.h
  * TODO: calculate used/remaining capacity of filters
+ * TODO: zero out/clear filters
  */
-#ifndef TIMEDECAY_H
-#define TIMEDECAY_H
+#ifndef TDBLOOM_H
+#define TDBLOOM_H
 
 #include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-/* timedecay -- time-decaying bloom filter structure
+/*
+ */
+typedef enum {
+	TDBF_SUCCESS,
+	// counter
+	TDBF_ERRORCOUNT
+} tdbloom_error_t;
+
+const char *tdbloom_errors[] = {
+	"Success"
+};
+
+/* tdbloom -- time-decaying bloom filter structure
  */
 typedef struct {
 	size_t  size;          /* size of time filter */
@@ -21,17 +34,17 @@ typedef struct {
 	size_t  max_time;      /* maximum value of timestamp */
 	int     bytes;         /* byte size of timestamps */
 	void   *filter;        /* array of time_t elements */
-} timedecay;
+} tdbloom;
 
 /* function definitions
  */
-bool timedecay_init(timedecay *, const size_t, const float, const size_t);
-void timedecay_destroy(timedecay);
-void timedecay_add(timedecay *, void *, const size_t);
-void timedecay_add_string(timedecay, const char *);
-bool timedecay_lookup(const timedecay, void *, const size_t);
-bool timedecay_lookup_string(const timedecay, const char *);
-bool timedecay_save(timedecay, const char *);
-bool timedecay_load(timedecay *, const char *);
+bool tdbloom_init(tdbloom *, const size_t, const float, const size_t);
+void tdbloom_destroy(tdbloom);
+void tdbloom_add(tdbloom *, void *, const size_t);
+void tdbloom_add_string(tdbloom, const char *);
+bool tdbloom_lookup(const tdbloom, void *, const size_t);
+bool tdbloom_lookup_string(const tdbloom, const char *);
+bool tdbloom_save(tdbloom, const char *);
+bool tdbloom_load(tdbloom *, const char *);
 
-#endif /* TIMEDECAY_H */
+#endif /* TDBLOOM_H */

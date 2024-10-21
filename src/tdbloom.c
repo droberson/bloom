@@ -1,4 +1,4 @@
-/* timedecay.c
+/* tdbloom.c
  */
 
 #include <time.h>
@@ -11,7 +11,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 
-#include "timedecay.h"
+#include "tdbloom.h"
 #include "mmh3.h"
 
 /* ideal_size() - calculate ideal size of a filter
@@ -46,10 +46,10 @@ static time_t get_monotonic_time() {
 	return ts.tv_sec;
 }
 
-/* timedecay_init() - initialize a time filter
+/* tdbloom_init() - initialize a time filter
  *
  * Args:
- *     tf       - pointer to timedecay structure
+ *     tf       - pointer to tdbloom structure
  *     expected - maximum expected number of elements
  *     accuracy - acceptable false positive rate. ex: 0.01 == 99.99% accuracy
  *     timeout  - number of seconds an element is valid
@@ -59,7 +59,7 @@ static time_t get_monotonic_time() {
  *
  * TODO: report reason for error.
  */
-bool timedecay_init(timedecay *tf, const size_t expected, const float accuracy, const size_t timeout) {
+bool tdbloom_init(tdbloom *tf, const size_t expected, const float accuracy, const size_t timeout) {
 	tf->size       = ideal_size(expected, accuracy);
 	tf->hashcount  = (tf->size / expected) * log(2);
 	tf->timeout    = timeout;
@@ -91,7 +91,7 @@ bool timedecay_init(timedecay *tf, const size_t expected, const float accuracy, 
 	return true;
 }
 
-/* timedecay_destroy() - uninitialize a time filter
+/* tdbloom_destroy() - uninitialize a time filter
  *
  * Args:
  *     tf - filter to destroy
@@ -99,11 +99,11 @@ bool timedecay_init(timedecay *tf, const size_t expected, const float accuracy, 
  * Returns:
  *     Nothing
  */
-void timedecay_destroy(timedecay tf) {
+void tdbloom_destroy(tdbloom tf) {
 	free(tf.filter);
 }
 
-/* timedecay_add() - add an element to a time filter
+/* tdbloom_add() - add an element to a time filter
  *
  * Args:
  *     tf      - time filter to add element to
@@ -113,7 +113,7 @@ void timedecay_destroy(timedecay tf) {
  * Returns:
  *     Nothing
  */
-void timedecay_add(timedecay *tf, void *element, const size_t len) {
+void tdbloom_add(tdbloom *tf, void *element, const size_t len) {
 	uint64_t    result;
 	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
@@ -131,7 +131,7 @@ void timedecay_add(timedecay *tf, void *element, const size_t len) {
 	}
 }
 
-/* timedecay_add_string() - add a string element to a time filter
+/* tdbloom_add_string() - add a string element to a time filter
  *
  * Args:
  *     tf      - time filter to add element to
@@ -140,11 +140,11 @@ void timedecay_add(timedecay *tf, void *element, const size_t len) {
  * Returns:
  *     Nothing
  */
-void timedecay_add_string(timedecay tf, const char *element) {
-	timedecay_add(&tf, (uint8_t *)element, strlen(element));
+void tdbloom_add_string(tdbloom tf, const char *element) {
+	tdbloom_add(&tf, (uint8_t *)element, strlen(element));
 }
 
-/* timedecay_lookup() - check if element exists within timedecay
+/* tdbloom_lookup() - check if element exists within tdbloom
  *
  * Args:
  *     tf      - time filter to perform lookup against
@@ -155,7 +155,7 @@ void timedecay_add_string(timedecay tf, const char *element) {
  *     true if element is in filter
  *     false if element is not in filter
  */
-bool timedecay_lookup(const timedecay tf, void *element, const size_t len) {
+bool tdbloom_lookup(const tdbloom tf, void *element, const size_t len) {
 	uint64_t    result;
 	uint64_t    hash[2];
 	time_t      now = get_monotonic_time();
@@ -184,7 +184,7 @@ bool timedecay_lookup(const timedecay tf, void *element, const size_t len) {
 	return true;
 }
 
-/* timedecay_lookup_string() -- helper function to handle string lookups
+/* tdbloom_lookup_string() -- helper function to handle string lookups
  *
  * Args:
  *     tf      - filter to use
@@ -194,16 +194,16 @@ bool timedecay_lookup(const timedecay tf, void *element, const size_t len) {
  *     true if element is likely in the filter
  *     false if element is definitely not in the filter
  */
-bool timedecay_lookup_string(const timedecay tf, const char *element) {
-	return timedecay_lookup(tf, (uint8_t *)element, strlen(element));
+bool tdbloom_lookup_string(const tdbloom tf, const char *element) {
+	return tdbloom_lookup(tf, (uint8_t *)element, strlen(element));
 }
 
 
-/* timedecay_save() -- save a time-decaying bloom filter to disk
+/* tdbloom_save() -- save a time-decaying bloom filter to disk
  *
  * Format of these files on disk is:
  *    +------------------+
- *    | timedecay struct |
+ *    | tdbloom struct |
  *    +------------------+
  *    |      bitmap      |
  *    +------------------+
@@ -215,9 +215,9 @@ bool timedecay_lookup_string(const timedecay tf, const char *element) {
  * Returns:
  *      true on success, false on failure
  *
- * TODO: test timedecay_save()
+ * TODO: test tdbloom_save()
  */
-bool timedecay_save(timedecay tf, const char *path) {
+bool tdbloom_save(tdbloom tf, const char *path) {
 	FILE *fp;
 
 	fp = fopen(path, "wb");
@@ -225,7 +225,7 @@ bool timedecay_save(timedecay tf, const char *path) {
 		return false;
 	}
 
-	fwrite(&tf, sizeof(timedecay), 1, fp);
+	fwrite(&tf, sizeof(tdbloom), 1, fp);
 	fwrite(tf.filter, tf.filter_size, 1, fp);
 
 	fclose(fp);
@@ -233,18 +233,18 @@ bool timedecay_save(timedecay tf, const char *path) {
 	return true;
 }
 
-/* timedecay_load() -- load a time-decaying bloom filter from disk
+/* tdbloom_load() -- load a time-decaying bloom filter from disk
  *
  * Args:
- *     tf   - timedecay struct of new filter
+ *     tf   - tdbloom struct of new filter
  *     path - location of filter on disk
  *
  * Returns:
  *     true on success, false on failure
  *
- * TODO: test timedecay_save()
+ * TODO: test tdbloom_save()
  */
-bool timedecay_load(timedecay *tf, const char *path) {
+bool tdbloom_load(tdbloom *tf, const char *path) {
 	FILE        *fp;
 	struct stat  sb;
 
@@ -258,11 +258,11 @@ bool timedecay_load(timedecay *tf, const char *path) {
 		return false;
 	}
 
-	fread(tf, sizeof(timedecay), 1, fp);
+	fread(tf, sizeof(tdbloom), 1, fp);
 
 	// basic sanity checks. should fail if file is not a filter
 	if (tf->filter_size != (tf->size * tf->bytes) ||
-		(sizeof(timedecay) + tf->filter_size) != sb.st_size) {
+		(sizeof(tdbloom) + tf->filter_size) != sb.st_size) {
 		fclose(fp);
 		return false;
 	}
